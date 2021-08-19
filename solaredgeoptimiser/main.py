@@ -1,8 +1,11 @@
 import datetime
+import logging
 
 from solaredgeoptimiser import yr_client
-from solaredgeoptimiser.config import config, logger, LOG_TIME_FORMAT
+from solaredgeoptimiser.config import config, LOG_TIME_FORMAT
 from solaredgeoptimiser.solar_edge_api import get_power_flow, get_battery_level, BatteryNotFoundError
+
+logger = logging.getLogger('solaredgeoptimiser.main')
 
 
 def main():
