@@ -1,16 +1,15 @@
-# This is a sample Python script.
+import datetime
 
-# Press ⌃R to execute it or replace it with your code.
-# Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
-
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press ⌘F8 to toggle the breakpoint.
+from solaredgeoptimiser import yr_client
+from solaredgeoptimiser.config import config, logger
 
 
-# Press the green button in the gutter to run the script.
+def main():
+    forecast = yr_client.get_forecast(config['site-location'])
+    coverage = yr_client.get_cloud_cover(forecast)
+    logger.info(f'Average coverage from {datetime.datetime.now().__format__("%Y-%m-%d %H:%M:%S")} '
+                f'until peak time ({config["peak-time"][0]}) is {coverage}')
+
+
 if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    main()
