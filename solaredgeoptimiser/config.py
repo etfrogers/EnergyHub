@@ -5,6 +5,8 @@ from typing import List
 
 import yaml
 
+LOG_TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+
 
 def to_times(str_list: List[str]) -> List[datetime.time]:
     return [datetime.time.fromisoformat(t) for t in str_list]
