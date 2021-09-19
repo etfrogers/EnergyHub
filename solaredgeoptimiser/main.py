@@ -3,6 +3,7 @@ import logging
 
 from solaredgeoptimiser import yr_client
 from solaredgeoptimiser.config import config, LOG_TIME_FORMAT
+from solaredgeoptimiser.solar_edge_settings import SolarEdgeConnection
 from solaredgeoptimiser.solar_edge_api import get_power_flow, get_battery_level, BatteryNotFoundError
 
 logger = logging.getLogger('solaredgeoptimiser.main')
@@ -20,6 +21,10 @@ def main():
         logger.error(str(err) + ' - Stopping execution')
         return
     logger.info(f'Battery charge: {battery_charge}%')
+
+    with SolarEdgeConnection() as se:
+        power = se.get_current_generation_power()
+    logger.info(f'Current power measured as {power} kW')
 
 
 if __name__ == '__main__':
