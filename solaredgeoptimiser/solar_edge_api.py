@@ -2,7 +2,6 @@ import datetime
 import json
 import logging
 from typing import Dict
-from urllib.parse import urljoin
 
 import requests
 
@@ -32,8 +31,10 @@ def get_battery_level():
     n_batteries = data['storageData']['batteryCount']
     if n_batteries != 1:
         msg = f'Expected 1 battery, but found {n_batteries}'
-        logger.error(f'Expected 1 battery, but found {n_batteries}')
-        raise BatteryNotFoundError(f'Expected 1 battery, but found {n_batteries}')
+        logger.error(msg)
+        raise BatteryNotFoundError(msg)
+    charge = data['storageData']['batteries'][0]['telemetries'][-1]['batteryPercentageState']
+    return charge
 
 
 def api_request(function: str, params: dict = None) -> Dict:
