@@ -23,7 +23,8 @@ def main():
     logger.info(f'Battery charge: {battery_charge}%')
 
     with SolarEdgeConnection() as se:
-        power = se.get_current_generation_power()
+        se.go_to_storage_profile()
+        se.add_special_day('Maximise Self Consumption')
     logger.info(f'Current power measured as {power} kW')
 
 

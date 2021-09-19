@@ -34,6 +34,9 @@ def get_cloud_cover(forecast: dict):
     start_of_peak_time = config['peak-time'][0]
     end_time = datetime.datetime.combine(datetime.datetime.now(), start_of_peak_time)
     coverage = {t: c for t, c in coverage.items() if t <= end_time}
-    average_coverage = sum(coverage.values()) / len(coverage)
     logger.debug(coverage)
+    if len(coverage) == 0:
+        logger.info('No coverage found for the rest of the day')
+        return None
+    average_coverage = sum(coverage.values()) / len(coverage)
     return average_coverage
