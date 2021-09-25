@@ -6,6 +6,7 @@ from typing import List
 import yaml
 
 LOG_TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+TIMESTAMP = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
 
 
 def to_times(str_list: List[str]) -> List[datetime.time]:

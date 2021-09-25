@@ -24,8 +24,8 @@ def main():
 
     with SolarEdgeConnection() as se:
         se.go_to_storage_profile()
-        se.add_special_day('Maximise Self Consumption')
-    logger.info(f'Current power measured as {power} kW')
+        se.add_special_day('Maximise SC', datetime.date(year=2021, month=12, day=31))
+    # logger.info(f'Current power measured as {power} kW')
 
 
 if __name__ == '__main__':
