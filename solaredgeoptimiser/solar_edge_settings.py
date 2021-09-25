@@ -1,19 +1,20 @@
 import datetime
 import json
 import logging
-from typing import Optional
+from typing import Optional, List, Any
 
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 from importlib_resources import files
 import pymsgbox
 
-from solaredgeoptimiser.config import config
+from solaredgeoptimiser.config import config, TIMESTAMP
 
 COOKIE_FILE_NAME = 'cookies.json'
 COOKIE_BASE_PATH = 'solaredgeoptimiser'
@@ -42,6 +43,7 @@ class SolarEdgeConnection:
 
     def __enter__(self):
         self.start_solar_edge_session()
+        self.wait = WebDriverWait(self.driver, 10)
         return self
 
     def start_solar_edge_session(self):
@@ -49,8 +51,8 @@ class SolarEdgeConnection:
         self.start_chrome()
         self.login_using_cached_cookies()
         logged_in = self.check_login()
-        logger.info('Automatic login failed. Trying manual login.')
         while not logged_in:
+            logger.info('Automatic login failed. Trying manual login.')
             try:
                 self.manual_login()
                 logged_in = self.check_login()
@@ -58,6 +60,7 @@ class SolarEdgeConnection:
                 break
         if not logged_in:
             raise SolarEdgeAuthenticationError()
+        self.add_cookie_consent()
 
     def manual_login(self):
         logger.debug('Starting manual login process')
@@ -85,8 +88,7 @@ class SolarEdgeConnection:
     def save_cookies(self):
         logger.debug('Saving cookies')
         cookies = self.driver.get_cookies()
-        timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S_')
-        filename = files(COOKIE_BASE_PATH).joinpath(timestamp + COOKIE_FILE_NAME)
+        filename = files(COOKIE_BASE_PATH).joinpath(TIMESTAMP + '_' + COOKIE_FILE_NAME)
         logger.debug(f'Saving to timestamped file: {filename}')
         with open(filename, 'w') as file:
             json.dump(cookies, file)
@@ -134,25 +136,80 @@ class SolarEdgeConnection:
         logger.debug(f'Pressing link \"{config["storage-profile-name"]}\"')
         profile_link.click()
 
-    def add_special_day(self, profile):
-        add_button = self.find_element_by_text('+ Add Special Day', 'button')
+    def add_special_day(self, profile: str, date: datetime.date):
+        date_str = date.strftime('%d/%m/%Y')
+        logger.info(f'Adding special day {profile} for date {date_str}')
+        add_button = self.find_element_by_text('+ Add Special Day', 'button', clickable=True)
+        profiles = self.get_available_profiles()
+        logger.debug('Clicking Add Special Day')
         add_button.click()
         # Need to do one which waits first
-        create_button = self.find_element_by_text('Create', 'button')
-        name_box = self.driver.find_elements_by_name('name')[-1]
-        description_box = self.driver.find_element_by_name('description')
-        links = [e.text for e in self.driver.find_elements_by_class_name('se-link')]
-        first_seasonal_link = 'Self consumption'
-        profiles = links[:links.index(first_seasonal_link)-1]
+        name_box = self.wait.until(expected_conditions.presence_of_element_located(
+            (By.XPATH, "//div[contains(@class, 'x-window')]//input[@name='name']")))
+        name_box.send_keys(date.strftime('%b %d'))
+        description_box = self.driver.find_element_by_xpath(
+            "//div[contains(@class, 'x-window')]//textarea[@name='description']")
+        description_box.send_keys('Set by SolarEdge Optimiser')
+        from_input_control = self.driver.find_element_by_name('from')
+        # TODO Make this format not-hardcoded?
+        self.set_element_value(from_input_control, date.strftime('%m/%d/%Y'))
+        date_box = self.driver.find_element_by_name('dateRng')
+        # TODO make date format a constant somewhere
+        self.set_element_value(date_box, date_str)
+        recurring_checkbox = self.driver.find_element_by_name('isRecurringCheckbox')
+        # default is for recurring to be clicked so, we click it to set it off
+        recurring_checkbox.click()
+        profile_selector = self.driver.find_element_by_name('dailyPlan')
+        # profile_index = profiles.index(profile)
+        # self.set_element_value(profile_selector, profile_index)
+        selector = self.driver.find_elements_by_class_name('x-form-field-trigger-wrap')
+        selector[-1].click()
+        profile_list = self.driver.find_elements_by_class_name('x-combo-list-item')
+        wanted_profile_item = next((x for x in profile_list if x.text == profile), None)
+        wanted_profile_item.click()
+        # Logically the line below would be simpler as find_element and without the ancestor-or-self,
+        # but that returns an element that seem not to be clickable
+        create_button = self.driver.find_elements_by_xpath(
+            "//button[text()='Create']/ancestor-or-self::*")[-1]
+        create_button.click()
+        pass
 
+    def set_element_value(self, elem: WebElement, value: Any):
+        self.driver.execute_script('''
+            var elem = arguments[0];
+            var value = arguments[1];
+            elem.value = value;
+            ''', elem, str(value))
 
-    def find_element_by_text(self, text, type_='*'):
-        return WebDriverWait(self.driver, 10).until(
-            expected_conditions.presence_of_element_located((By.XPATH,
-                                                             f"//{type_}[text()='{text}']")))
+    def get_available_profiles(self) -> List[str]:
+        """Assumes that the storage page is loaded"""
+        elements = self.driver.find_elements_by_xpath(
+            "(//div[@class='x-fieldset-body'])[2]//u[@class='se-link']")
+        profiles = [e.text for e in elements]
+        return profiles
+
+    def find_element_by_text(self, text: str, type_: str = '*', clickable: bool = False):
+        locator = (By.XPATH, f"//{type_}[text()='{text}']")
+        if clickable:
+            condition = expected_conditions.element_to_be_clickable(locator)
+        else:
+            condition = expected_conditions.presence_of_element_located(locator)
+        return self.wait.until(condition)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.driver.quit()
+
+    def add_cookie_consent(self):
+        cookie = json.loads("""{
+                                "domain": "monitoring.solaredge.com",
+                                "expiry": 2263668060,
+                                "httpOnly": false,
+                                "name": "solaredge_cookie_concent",
+                                "path": "/",
+                                "secure": false,
+                                "value": "1"
+                                }""")
+        self.driver.add_cookie(cookie)
 
 
 def main():
