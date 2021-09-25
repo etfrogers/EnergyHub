@@ -5,8 +5,7 @@ import logging
 
 import requests
 
-from solaredgeoptimiser.config import config
-
+from solaredgeoptimiser.config import config, TIMESTAMP
 
 YR_TIME_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 YR_API_URL = 'https://api.met.no/weatherapi/locationforecast/2.0/'
@@ -21,7 +20,11 @@ def get_forecast(location: dict, forecast_style: str = 'compact'):
     url = urljoin(YR_API_URL, forecast_style)
     response = requests.get(url, headers=user_agent, params=location)
     response.raise_for_status()
-    return json.loads(response.text)
+    json_forecast = json.loads(response.text)
+    # TODO write conditionally?
+    with open(f'forecast_{TIMESTAMP}.json', 'w') as file:
+        json.dump(json_forecast, file, indent=4)
+    return json_forecast
 
 
 def get_cloud_cover(forecast: dict):
