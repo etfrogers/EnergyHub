@@ -22,6 +22,7 @@ def get_power_flow():
 
 
 def get_battery_level():
+    logger.debug('Getting battery level')
     start_time = datetime.datetime.now() - datetime.timedelta(minutes=15)
     end_time = datetime.datetime.now() + datetime.timedelta(minutes=15)
     params = {'startTime': start_time.strftime(API_TIME_FORMAT),
@@ -34,6 +35,7 @@ def get_battery_level():
         logger.error(msg)
         raise BatteryNotFoundError(msg)
     charge = data['storageData']['batteries'][0]['telemetries'][-1]['batteryPercentageState']
+    logger.debug(f'Battery charge is {charge}')
     return charge
 
 

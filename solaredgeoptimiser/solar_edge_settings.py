@@ -137,6 +137,7 @@ class SolarEdgeConnection:
         profile_link.click()
 
     def add_special_day(self, profile: str, date: datetime.date):
+        """Assumes that we are on the storage page already..."""
         date_str = date.strftime('%d/%m/%Y')
         logger.info(f'Adding special day {profile} for date {date_str}')
         add_button = self.find_element_by_text('+ Add Special Day', 'button', clickable=True)

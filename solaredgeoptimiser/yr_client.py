@@ -5,7 +5,7 @@ import logging
 
 import requests
 
-from solaredgeoptimiser.config import config, TIMESTAMP
+from solaredgeoptimiser.config import config, TIMESTAMP, LOG_TIME_FORMAT
 
 YR_TIME_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 YR_API_URL = 'https://api.met.no/weatherapi/locationforecast/2.0/'
@@ -27,19 +27,20 @@ def get_forecast(location: dict, forecast_style: str = 'compact'):
     return json_forecast
 
 
-def get_cloud_cover(forecast: dict):
+def get_cloud_cover(forecast: dict, start_time: datetime.datetime, end_time: datetime.datetime):
+    logger.debug(f'Getting cloud coverage between {start_time.strftime(LOG_TIME_FORMAT)} '
+                 f'to {end_time.strftime(LOG_TIME_FORMAT)}')
     coverage = {}
     for timepoint in forecast['properties']['timeseries']:
         time = datetime.datetime.strptime(timepoint["time"], YR_TIME_FORMAT)
         cloud_cover = timepoint["data"]["instant"]["details"]["cloud_area_fraction"]
         logger.debug(f'{time}: cloud cover {cloud_cover}%')
         coverage[time] = cloud_cover
-    start_of_peak_time = config['peak-time'][0]
-    end_time = datetime.datetime.combine(datetime.datetime.now(), start_of_peak_time)
-    coverage = {t: c for t, c in coverage.items() if t <= end_time}
+    coverage = {t: c for t, c in coverage.items() if start_time <= t <= end_time}
     logger.debug(coverage)
     if len(coverage) == 0:
-        logger.info('No coverage found for the rest of the day')
+        logger.info('No coverage found for the time period')
         return None
     average_coverage = sum(coverage.values()) / len(coverage)
-    return average_coverage
+    logger.debug(f'Average coverage: {average_coverage:.2f}%')
+    return average_coverage, coverage
