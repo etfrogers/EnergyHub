@@ -211,20 +211,3 @@ class SolarEdgeConnection:
                                 "value": "1"
                                 }""")
         self.driver.add_cookie(cookie)
-
-
-def main():
-    with SolarEdgeConnection() as session:
-        power = session.get_current_generation_power()
-        logger.info(f'Current power measured as {power} kW')
-
-    # assert "Python" in driver.title
-    # elem = driver.find_element_by_name("q")
-    # elem.clear()
-    # elem.send_keys("pycon")
-    # elem.send_keys(Keys.RETURN)
-    # assert "No results found." not in driver.page_source
-
-
-if __name__ == '__main__':
-    main()
