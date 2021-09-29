@@ -43,8 +43,8 @@ def check_for_clipped_charge():
     start_of_peak_time = config['peak-time'][0]
     end_time = datetime.datetime.combine(day_to_check, start_of_peak_time)
     avg_coverage, _ = yr_client.get_cloud_cover(forecast, start_time, end_time)
-    logger.info(f'Average coverage from {datetime.datetime.now().strftime(LOG_TIME_FORMAT)} '
-                f'until peak time ({config["peak-time"][0]}) is {avg_coverage}')
+    logger.info(f'Average coverage from {start_time.strftime(LOG_TIME_FORMAT)} '
+                f'until peak time ({end_time.strftime(LOG_TIME_FORMAT)}) is {avg_coverage}')
     battery_charge = get_battery_level()
     if battery_charge < 40:
         logger.info(f'Battery level of {battery_charge}% is less than 40%. '
