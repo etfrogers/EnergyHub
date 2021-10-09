@@ -16,6 +16,9 @@ import pymsgbox
 
 from solaredgeoptimiser.config import config, TIMESTAMP
 
+DATE_RANGE_BOX_INPUT_FORMAT = '%d/%m/%Y'
+DATE_FROM_BOX_INPUT_FORMAT = '%m/%d/%Y'
+
 COOKIE_FILE_NAME = 'cookies.json'
 COOKIE_BASE_PATH = 'solaredgeoptimiser'
 COOKIE_FILE_PATH = files(COOKIE_BASE_PATH).joinpath(COOKIE_FILE_NAME)
@@ -138,7 +141,7 @@ class SolarEdgeConnection:
 
     def add_special_day(self, profile: str, date: datetime.date):
         """Assumes that we are on the storage page already..."""
-        date_str = date.strftime('%d/%m/%Y')
+        date_str = date.strftime(DATE_RANGE_BOX_INPUT_FORMAT)
         logger.info(f'Adding special day {profile} for date {date_str}')
         add_button = self.find_element_by_text('+ Add Special Day', 'button', clickable=True)
         profiles = self.get_available_profiles()
@@ -152,10 +155,8 @@ class SolarEdgeConnection:
             "//div[contains(@class, 'x-window')]//textarea[@name='description']")
         description_box.send_keys('Set by SolarEdge Optimiser')
         from_input_control = self.driver.find_element_by_name('from')
-        # TODO Make this format not-hardcoded?
-        self.set_element_value(from_input_control, date.strftime('%m/%d/%Y'))
+        self.set_element_value(from_input_control, date.strftime(DATE_FROM_BOX_INPUT_FORMAT))
         date_box = self.driver.find_element_by_name('dateRng')
-        # TODO make date format a constant somewhere
         self.set_element_value(date_box, date_str)
         recurring_checkbox = self.driver.find_element_by_name('isRecurringCheckbox')
         # default is for recurring to be clicked so, we click it to set it off
