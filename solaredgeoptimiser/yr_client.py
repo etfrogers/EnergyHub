@@ -7,18 +7,21 @@ import requests
 
 from solaredgeoptimiser.config import config, TIMESTAMP, LOG_TIME_FORMAT
 
-YR_TIME_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
-YR_API_URL = 'https://api.met.no/weatherapi/locationforecast/2.0/'
+YR_DATE_FORMAT = '%Y-%m-%d'
+YR_TIME_FORMAT = f'{YR_DATE_FORMAT}T%H:%M:%SZ'
+YR_BASE_URL = 'https://api.met.no/'
+YR_FORECAST_URL = f'{YR_BASE_URL}weatherapi/locationforecast/2.0/'
+YR_SUNRISE_URL = f'{YR_BASE_URL}weatherapi/sunrise/2.0/'
 PROJECT_ID = 'https://github.com/etfrogers/SolarEdge'
+USER_AGENT = {'User-agent': PROJECT_ID}
 
 logger = logging.getLogger(__name__)
 
 
 def get_forecast(location: dict, forecast_style: str = 'compact'):
-    user_agent = {'User-agent': PROJECT_ID}
     # forecast_style = 'compact'
-    url = urljoin(YR_API_URL, forecast_style)
-    response = requests.get(url, headers=user_agent, params=location)
+    url = urljoin(YR_FORECAST_URL, forecast_style)
+    response = requests.get(url, headers=USER_AGENT, params=location)
     response.raise_for_status()
     json_forecast = json.loads(response.text)
     # TODO write conditionally?
@@ -44,3 +47,19 @@ def get_cloud_cover(forecast: dict, start_time: datetime.datetime, end_time: dat
     average_coverage = sum(coverage.values()) / len(coverage)
     logger.debug(f'Average coverage: {average_coverage:.2f}%')
     return average_coverage, coverage
+
+
+def get_sunrise_sunset(location: dict, date: datetime.date):
+    params = location.copy()
+    params['date'] = date.strftime(YR_DATE_FORMAT)
+    params['offset'] = get_local_time_offset_string()
+    result = requests.get(YR_SUNRISE_URL+'.json', headers=USER_AGENT, params=params)
+    print(result.text)
+
+
+def get_local_time_offset_string():
+    offset = datetime.datetime.now().astimezone().utcoffset()
+    sign = '-' if offset < datetime.timedelta(0) else '+'
+    offset_str = str(offset)
+    h, m, s = (int(part) for part in offset_str.split(':'))
+    return f'{sign}{h:02d}:{m:02d}'
