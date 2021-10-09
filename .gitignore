@@ -1,3 +1,4 @@
 site_config.yml
 *.log
 *cookies.json
+forecast_*.json
