@@ -30,8 +30,12 @@ class Config:
         return getattr(self, self.key_to_attr(item))
 
     @property
-    def target_battery_level_after_discharge(self):
-        return self.minimum_battery_level + self.reserve_capacity + self.overnight_usage
+    def target_battery_level_evening(self):
+        return self.min_morning_charge + self.overnight_usage
+
+    @property
+    def min_morning_charge(self):
+        return self.minimum_battery_level + self.reserve_capacity
 
     @staticmethod
     def to_times(str_list: List[str]) -> List[datetime.time]:
