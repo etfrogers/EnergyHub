@@ -1,5 +1,6 @@
 import json
 import datetime
+from typing import Tuple
 from urllib.parse import urljoin
 import logging
 
@@ -49,12 +50,19 @@ def get_cloud_cover(forecast: dict, start_time: datetime.datetime, end_time: dat
     return average_coverage, coverage
 
 
-def get_sunrise_sunset(location: dict, date: datetime.date):
+def get_sunrise_sunset(location: dict, date: datetime.date) -> Tuple[datetime.datetime, ...]:
     params = location.copy()
     params['date'] = date.strftime(YR_DATE_FORMAT)
     params['offset'] = get_local_time_offset_string()
     result = requests.get(YR_SUNRISE_URL+'.json', headers=USER_AGENT, params=params)
-    print(result.text)
+    data = json.loads(result.text)
+    sun_data = data['location']['time'][0]
+    time_strings = (sun_data['sunrise']['time'], sun_data['sunset']['time'])
+    offset_str = get_local_time_offset_string()
+    assert all(s.endswith(offset_str) for s in time_strings)
+    time_strings = [s[:-len(offset_str)] for s in time_strings]
+    times = tuple(datetime.datetime.strptime(s, YR_TIME_FORMAT[:-1]) for s in time_strings)
+    return times
 
 
 def get_local_time_offset_string():
