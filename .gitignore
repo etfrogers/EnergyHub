@@ -2,3 +2,5 @@ site_config.yml
 *.log
 *cookies.json
 forecast_*.json
+battery_details_*.json
+power_details_*.json
