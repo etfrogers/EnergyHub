@@ -2,9 +2,8 @@ import datetime
 import functools
 import json
 import re
-from functools import cached_property, partialmethod
 from glob import glob
-from typing import Tuple, List
+from typing import List, Sequence
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -51,7 +50,7 @@ class PowerHistory:
             sorted_list = list_indexed_by_list(getattr(self, list_), indices)
             setattr(self, list_, sorted_list)
 
-    def load_battery_history(self, get_from_server=False):
+    def load_battery_history(self, get_from_server: bool = False) -> None:
         if get_from_server:
             get_battery_history_for_site()
         history_files = glob('battery_details_*.json')
@@ -72,41 +71,41 @@ class PowerHistory:
         self._battery_timestamp_list = list_indexed_by_list(self._battery_timestamp_list, indices)
         self._battery_power_list = list_indexed_by_list(self._battery_power_list, indices)
 
-    @cached_property
+    @functools.cached_property
     def timestamps(self):
         return np.array(self._timestamp_list)
 
-    @cached_property
-    def battery_power(self):
+    @functools.cached_property
+    def battery_power(self) -> np.ndarray:
         return np.array(self._battery_power_list)
 
-    @cached_property
-    def battery_timestamps(self):
+    @functools.cached_property
+    def battery_timestamps(self) -> np.ndarray:
         return np.array(self._battery_timestamp_list)
 
-    @cached_property
-    def is_battery_charging(self):
+    @functools.cached_property
+    def is_battery_charging(self) -> np.ndarray:
         return self.battery_power > 0
 
-    @cached_property
-    def battery_charge_rate(self):
+    @functools.cached_property
+    def battery_charge_rate(self) -> np.ndarray:
         charging = self.battery_power.copy()
         charging[~self.is_battery_charging] = 0
         return charging
 
-    @cached_property
-    def battery_production(self):
+    @functools.cached_property
+    def battery_production(self) -> np.ndarray:
         production = self.battery_power.copy()
         production[self.is_battery_charging] = 0
         production = -production
         return production
 
     @staticmethod
-    def _extract_time_stamps(value_list, time_name):
+    def _extract_time_stamps(value_list: List[dict], time_name: str) -> List[datetime.datetime]:
         times = [datetime.datetime.strptime(entry[time_name], API_TIME_FORMAT) for entry in value_list]
         return times
 
-    def _list_to_array(self, meter: str):
+    def _list_to_array(self, meter: str) -> np.ndarray:
         return np.array(getattr(self, self._list_name(meter)))
 
     def _meter_list_names(self):
@@ -114,13 +113,13 @@ class PowerHistory:
             yield self._list_name(meter)
 
     @staticmethod
-    def _list_name(meter_name: str):
+    def _list_name(meter_name: str) -> str:
         return f'_{_camel_to_snake(meter_name)}_list'
 
-    def _get_list(self, meter_name) -> List:
+    def _get_list(self, meter_name: str) -> List:
         return getattr(self, self._list_name(meter_name))
 
-    def plot_production(self):
+    def plot_production(self) -> None:
         time = datetime.datetime(2021, 10, 6)
 
         plt.figure()
@@ -146,12 +145,12 @@ for meter_ in PowerHistory.meters:
     setattr(PowerHistory, meter_, property(fget=functools.partial(PowerHistory._list_to_array, meter=meter_)))
 
 
-def _camel_to_snake(name):
+def _camel_to_snake(name: str) -> str:
     name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
 
 
-def argsort(seq):
+def argsort(seq: Sequence) -> Sequence:
     # http://stackoverflow.com/questions/3071415/efficient-method-to-calculate-the-rank-vector-of-a-list-in-python
     return sorted(range(len(seq)), key=seq.__getitem__)
 
