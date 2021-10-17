@@ -1,6 +1,7 @@
 import datetime
 import json
 import logging
+import time
 from typing import Optional, List, Any
 
 from selenium import webdriver
@@ -78,14 +79,9 @@ class SolarEdgeConnection:
 
         logger.debug('Showing login page')
         self.go_home()
-        login_done = pymsgbox.confirm(title='Manual Solar Edge login',
-                                      text='Press OK when logged in, or Cancel to abort.',
-                                      buttons=['OK', 'Cancel'])
-        logger.debug(f'Confirmation box returned: {login_done}')
-        if login_done != 'OK':
-            logger.info(f'Manual Login was cancelled (msg box returned "{login_confirmed}"')
-            raise LoginCancelledException()
-        logger.debug('Manual login confirmed')
+        logger.debug('Sleeping')
+        time.sleep(60)
+        logger.debug('Waking')
         self.save_cookies()
 
     def save_cookies(self):
