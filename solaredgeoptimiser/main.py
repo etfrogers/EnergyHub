@@ -43,10 +43,10 @@ def check_for_clipped_charge():
     if check_tomorrow:
         day_to_check += datetime.timedelta(days=1)
         check_message = 'Checking for clipped charge tomorrow: '
-        battery_threshold = config['min-morning-charge']
+        battery_threshold = config['target_battery_level_evening']
     else:
         check_message = 'Checking for clipped charge today: '
-        battery_threshold = config['target_battery_level_evening']
+        battery_threshold = config['min-morning-charge']
 
     logger.debug(check_message + day_to_check.strftime('%d-%m-%Y') +
                  f' (battery threshold: {battery_threshold}%)')
