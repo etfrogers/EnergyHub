@@ -1,7 +1,6 @@
 import datetime
 import json
 import logging
-import time
 from typing import Optional, List, Any
 
 from selenium import webdriver
@@ -12,7 +11,6 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 from importlib_resources import files
-import pymsgbox
 
 from solaredgeoptimiser.config import config, TIMESTAMP
 
@@ -41,8 +39,9 @@ class LoginCancelledException(Exception):
 
 
 class SolarEdgeConnection:
-    def __init__(self):
+    def __init__(self, interactive_session: bool = True):
         self.driver: Optional[webdriver.Chrome] = None
+        self.interactive_session = interactive_session
 
     def __enter__(self):
         self.start_solar_edge_session()
@@ -54,33 +53,33 @@ class SolarEdgeConnection:
         self.start_chrome()
         self.login_using_cached_cookies()
         logged_in = self.check_login()
-        while not logged_in:
-            logger.info('Automatic login failed. Trying manual login.')
-            try:
-                self.manual_login()
-                logged_in = self.check_login()
-            except LoginCancelledException:
-                break
+        if self.interactive_session:
+            while not logged_in:
+                logger.info('Automatic login failed. Trying manual login.')
+                try:
+                    self.manual_login()
+                    logged_in = self.check_login()
+                except LoginCancelledException:
+                    break
         if not logged_in:
             raise SolarEdgeAuthenticationError()
         self.add_cookie_consent()
 
     def manual_login(self):
         logger.debug('Starting manual login process')
-        login_confirmed = pymsgbox.confirm(title='Manual Solar Edge login',
-                                           text='Would you like to perform a manual login?',
-                                           buttons=['Yes', 'No'],
-                                           timeout=30_000)
-        # Return value can be 'Yes', 'No', or 'Timeout'
-        if login_confirmed != 'Yes':
-            logger.debug(f'Manual Login was cancelled (msg box returned "{login_confirmed}"')
+        do_manual_login = input('Would you like to perform a manual login? [Y/n]')
+        if do_manual_login.strip().lower().startswith('n'):
+            logger.debug(f'Manual Login was not required (input was "{do_manual_login}"')
             raise LoginCancelledException()
 
         logger.debug('Showing login page')
         self.go_home()
-        logger.debug('Sleeping')
-        time.sleep(60)
-        logger.debug('Waking')
+        logger.debug('Waiting for confirmation')
+        confirmation = input('Press enter when login is complete, or cancel by pressing c, Enter')
+        if confirmation.strip().lower().startswith('n'):
+            logger.debug(f'Manual Login was cancelled (input was "{do_manual_login}"')
+            raise LoginCancelledException()
+        logger.debug('Manual login confirmed')
         self.save_cookies()
 
     def save_cookies(self):
@@ -169,7 +168,14 @@ class SolarEdgeConnection:
         create_button = self.driver.find_elements_by_xpath(
             "//button[text()='Create']/ancestor-or-self::*")[-1]
         create_button.click()
-        pass
+        if self.interactive_session:
+            _ = input('Check the new configuration and confirm update manually. '
+                      'Press Enter when Update is complete.')
+        else:
+            update_button = self.find_element_by_text('Update', 'button', clickable=True)
+            update_button.click()
+            yes_button = self.find_element_by_text('Yes', 'button', clickable=True)
+            yes_button.click()
 
     def set_element_value(self, elem: WebElement, value: Any):
         self.driver.execute_script('''

@@ -15,7 +15,6 @@ def test():
     coverage = yr_client.get_cloud_cover(forecast)
     logger.info(f'Average coverage from {datetime.datetime.now().strftime(LOG_TIME_FORMAT)} '
                 f'until peak time ({config["peak-time"][0]}) is {coverage}')
-    # get_power_flow()
     try:
         battery_charge = get_battery_level()
     except BatteryNotFoundError as err:
@@ -34,7 +33,7 @@ def main():
     # get_sunrise_sunset(config['site-location'])
 
 
-def check_for_clipped_charge():
+def check_for_clipped_charge(interactive=True):
     start_of_collection_time = datetime.time(hour=10)
     start_of_peak_time = config['peak-time'][0]
     now = datetime.datetime.now()
@@ -66,7 +65,7 @@ def check_for_clipped_charge():
                     f'Not switching to clipped charge')
     else:
         logger.info(f'Switching to clipped charge for {day_to_check.strftime(LOG_TIME_FORMAT)}')
-        with SolarEdgeConnection() as se:
+        with SolarEdgeConnection(interactive) as se:
             se.go_to_storage_profile()
             se.add_special_day('Clipped charge', day_to_check)
 
