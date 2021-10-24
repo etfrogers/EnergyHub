@@ -36,9 +36,10 @@ def main():
 
 def check_for_clipped_charge():
     start_of_collection_time = datetime.time(hour=10)
+    start_of_peak_time = config['peak-time'][0]
     now = datetime.datetime.now()
     day_to_check = datetime.datetime.now().date()
-    check_tomorrow = now.time() > start_of_collection_time
+    check_tomorrow = now.time() > start_of_peak_time
     if check_tomorrow:
         day_to_check += datetime.timedelta(days=1)
         check_message = 'Checking for clipped charge tomorrow: '
@@ -51,7 +52,6 @@ def check_for_clipped_charge():
                  f' (battery threshold: {battery_threshold}%)')
     forecast = yr_client.get_forecast(config['site-location'])
     start_time = datetime.datetime.combine(day_to_check, start_of_collection_time)
-    start_of_peak_time = config['peak-time'][0]
     end_time = datetime.datetime.combine(day_to_check, start_of_peak_time)
     avg_coverage, _ = yr_client.get_cloud_cover(forecast, start_time, end_time)
     logger.info(f'Average coverage from {start_time.strftime(LOG_TIME_FORMAT)} '
