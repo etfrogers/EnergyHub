@@ -34,6 +34,7 @@ def main():
 
 
 def check_for_clipped_charge(interactive=True):
+    logger.info('Starting check for clipped charge')
     start_of_collection_time = datetime.time(hour=10)
     start_of_peak_time = config['peak-time'][0]
     now = datetime.datetime.now()
@@ -47,21 +48,21 @@ def check_for_clipped_charge(interactive=True):
         check_message = 'Checking for clipped charge today: '
         battery_threshold = config['min-morning-charge']
 
-    logger.debug(check_message + day_to_check.strftime('%d-%m-%Y') +
+    logger.info(check_message + day_to_check.strftime('%d-%m-%Y') +
                  f' (battery threshold: {battery_threshold}%)')
     forecast = yr_client.get_forecast(config['site-location'])
     start_time = datetime.datetime.combine(day_to_check, start_of_collection_time)
     end_time = datetime.datetime.combine(day_to_check, start_of_peak_time)
     avg_coverage, _ = yr_client.get_cloud_cover(forecast, start_time, end_time)
     logger.info(f'Average coverage from {start_time.strftime(LOG_TIME_FORMAT)} '
-                f'until peak time ({end_time.strftime(LOG_TIME_FORMAT)}) is {avg_coverage}')
+                f'until peak time ({end_time.strftime(LOG_TIME_FORMAT)}) is {avg_coverage:.1f}%')
     battery_charge = get_battery_level()
-
+    logger.info(f'Current battery level {battery_charge:.1f}%')
     if battery_charge < battery_threshold:
-        logger.info(f'Battery level of {battery_charge}% is less than '
+        logger.info(f'Battery level of {battery_charge:.1f}% is less than '
                     f'{battery_threshold}%. Not switching to clipped charge')
     elif avg_coverage > 50:
-        logger.info(f'Cloud coverage of {avg_coverage} is greater than 50%. '
+        logger.info(f'Cloud coverage of {avg_coverage:.1f}% is greater than 50%. '
                     f'Not switching to clipped charge')
     else:
         logger.info(f'Switching to clipped charge for {day_to_check.strftime(LOG_TIME_FORMAT)}')
