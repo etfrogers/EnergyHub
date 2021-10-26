@@ -7,6 +7,9 @@ from typing import List, Sequence
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.dates import DateFormatter
+from numpy_groupies import aggregate
+from scipy.interpolate import interp1d
 
 from solaredgeoptimiser.solar_edge_api import get_power_history_for_site, API_TIME_FORMAT, get_battery_history_for_site
 
@@ -15,14 +18,17 @@ from solaredgeoptimiser.solar_edge_api import get_power_history_for_site, API_TI
 class PowerHistory:
     meters = ['consumption', 'production', 'feed_in', 'purchased', 'self_consumption']
 
-    def __init__(self):
+    def __init__(self, get_from_server: bool = False):
         self._timestamp_list = []
         self._battery_timestamp_list = []
         self._battery_power_list = []
+        self._battery_power = np.array([])
+        self._battery_power_ungrouped_list = []
         for meter in self.meters:
             setattr(self, self._list_name(meter), [])
-        self.load_power_history()
-        self.load_battery_history()
+        self.load_power_history(get_from_server)
+        self.load_battery_history(get_from_server)
+        self.group_battery_powers()
 
     def load_power_history(self, get_from_server: bool = False) -> None:
         if get_from_server:
@@ -71,13 +77,37 @@ class PowerHistory:
         self._battery_timestamp_list = list_indexed_by_list(self._battery_timestamp_list, indices)
         self._battery_power_list = list_indexed_by_list(self._battery_power_list, indices)
 
+    def group_battery_powers(self):
+        self._battery_power_ungrouped_list = self._battery_power_list.copy()
+        numeric_timestamps = np.array([d.timestamp() for d in self._timestamp_list])
+        interpolator = interp1d(numeric_timestamps,
+                                np.arange(self.timestamps.size),
+                                kind='previous')
+        battery_numeric_timestamps = np.array([d.timestamp() for d in self._battery_timestamp_list])
+        group_indices = interpolator(battery_numeric_timestamps).astype(int)
+        sorted_indices = np.unique(group_indices)
+        sorted_indices.sort()
+        # battery_grouped_timestamps = self.timestamps[sorted_indices]
+        battery_grouped_power = aggregate(group_indices, self.battery_power_ungrouped, func='mean')
+        battery_power = np.zeros_like(self.production)
+        battery_power[sorted_indices] = battery_grouped_power[sorted_indices]
+        self._battery_power = battery_power
+
     @functools.cached_property
     def timestamps(self):
         return np.array(self._timestamp_list)
 
-    @functools.cached_property
+    @property
+    def solar_production(self):
+        return self.production + self.battery_power
+
+    @property
     def battery_power(self) -> np.ndarray:
-        return np.array(self._battery_power_list)
+        return self._battery_power
+
+    @functools.cached_property
+    def battery_power_ungrouped(self) -> np.ndarray:
+        return np.array(self._battery_power_ungrouped_list)
 
     @functools.cached_property
     def battery_timestamps(self) -> np.ndarray:
@@ -120,22 +150,38 @@ class PowerHistory:
         return getattr(self, self._list_name(meter_name))
 
     def plot_production(self) -> None:
-        time = datetime.datetime(2021, 10, 6)
-
+        time = datetime.datetime(2021, 10, 25)
+        indices = ((time < self.timestamps)
+                   & (self.timestamps < (time + datetime.timedelta(days=1))))
+        times = self.timestamps[indices]
         plt.figure()
-        ax1 = plt.subplot(2, 1, 1)
-        plt.plot(self.timestamps, self.production, label='Production')
-        plt.plot(self.timestamps, self.feed_in, label='Export')
-        plt.plot(self.timestamps, self.purchased, label='Import')
-        plt.plot(self.battery_timestamps, self.battery_production, label='Battery production')
-        ax1.set_xlim([time, time + datetime.timedelta(days=1)])
-        plt.legend()
+        ax1 = plt.subplot(3, 1, 1)
+        plt.plot(times, self.solar_production[indices], label='Solar Production')
+        plt.plot(times, self.feed_in[indices], label='Export')
+        plt.plot(times, self.purchased[indices], label='Import')
+        plt.plot(times, self.battery_production[indices], label='Battery production')
+        plt.plot(times, self.battery_charge_rate[indices], label='Battery Charging')
+        # ax1.set_xlim([time, time + datetime.timedelta(days=1)])
+        plt.legend(loc='upper left')
 
-        ax2 = plt.subplot(2, 1, 2)
-        plt.plot(self.timestamps, self.consumption, label='Consumption')
-        plt.plot(self.timestamps, self.self_consumption, label='Self Consumption')
+        ax2 = plt.subplot(3, 1, 2)
+        plt.plot(times, self.consumption[indices], label='Consumption')
+        plt.plot(times, self.self_consumption[indices], label='Self Consumption')
         plt.legend()
-        ax2.set_xlim([time, time + datetime.timedelta(days=1)])
+        ax3 = plt.subplot(3, 1, 3)
+        plt.plot(times, self.battery_production[indices], label='Battery production')
+        plt.plot(times, self.battery_charge_rate[indices], label='Battery charging')
+        plt.plot(times, self.production[indices], label='System production')
+        plt.plot(times, self._battery_power[indices], label='Battery power')
+        plt.plot(self._battery_timestamp_list, self.battery_power_ungrouped,
+                 label='Raw Battery power', linestyle='--')
+        plt.legend(loc='upper left')
+        ax3.set_xlim([time, time + datetime.timedelta(days=1)])
+
+        date_form = DateFormatter("%H:%M")
+        ax1.xaxis.set_major_formatter(date_form)
+        ax2.xaxis.set_major_formatter(date_form)
+        ax3.xaxis.set_major_formatter(date_form)
 
         plt.show()
 
@@ -160,7 +206,7 @@ def list_indexed_by_list(lst: List, indices: List[int]) -> List:
 
 
 def main():
-    history = PowerHistory()
+    history = PowerHistory(get_from_server=False)
     history.plot_production()
 
 
