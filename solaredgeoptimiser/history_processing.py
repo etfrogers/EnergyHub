@@ -130,6 +130,14 @@ class PowerHistory:
         production = -production
         return production
 
+    @functools.cached_property
+    def times(self):
+        return np.array([xi.replace(year=2021, month=1, day=1) for xi in self.timestamps])
+
+    @functools.cached_property
+    def dates(self):
+        return np.array([xi.date() for xi in self.timestamps])
+
     @staticmethod
     def _extract_time_stamps(value_list: List[dict], time_name: str) -> List[datetime.datetime]:
         times = [datetime.datetime.strptime(entry[time_name], API_TIME_FORMAT) for entry in value_list]
@@ -178,12 +186,35 @@ class PowerHistory:
         plt.legend(loc='upper left')
         ax3.set_xlim([time, time + datetime.timedelta(days=1)])
 
-        date_form = DateFormatter("%H:%M")
-        ax1.xaxis.set_major_formatter(date_form)
-        ax2.xaxis.set_major_formatter(date_form)
-        ax3.xaxis.set_major_formatter(date_form)
+        ax1.xaxis.set_major_formatter(self._time_format())
+        ax2.xaxis.set_major_formatter(self._time_format())
+        ax3.xaxis.set_major_formatter(self._time_format())
 
         plt.show()
+
+    def plot_solar_waterfall(self, adjust_for_sunrise: bool = True):
+        plt.figure()
+        plot_args = {'alpha': 0.2, 'linestyle': None, 'marker': '.'}
+        # General for BST. could be adjusted per day later if needed
+        # Note: all times are forced to be on 1/1/2021
+        # They need to be datetime not time objects to plot
+        solar_noon = datetime.datetime(year=2021, month=1, day=1,hour=13)
+        if adjust_for_sunrise:
+            times = self.times
+            am_indices = times < solar_noon
+            am_times = times[am_indices]
+            pm_times = times[~am_indices]
+            am_production = self.solar_production[am_indices]
+            pm_production = self.solar_production[~am_indices]
+            plt.plot(am_times, am_production, **plot_args)
+        else:
+            plt.plot(self.times, self.solar_production, **plot_args)
+        plt.gca().xaxis.set_major_formatter(self._time_format())
+        plt.show()
+
+    @staticmethod
+    def _time_format():
+        return DateFormatter("%H:%M")
 
 
 for meter_ in PowerHistory.meters:
@@ -207,7 +238,8 @@ def list_indexed_by_list(lst: List, indices: List[int]) -> List:
 
 def main():
     history = PowerHistory(get_from_server=False)
-    history.plot_production()
+    # history.plot_production()
+    history.plot_solar_waterfall()
 
 
 if __name__ == '__main__':
