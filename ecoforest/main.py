@@ -6,7 +6,33 @@ import matplotlib.pyplot as plt
 def main():
     year = 2022
     month = 3
-    day = 12
+    day = 15
+    data = get_data_from_server(day, month, year)
+
+    # taken from Javascript plotting code
+    # (need to subtract 2 from the indices used there to allow for serial and timestamp)
+    consumption = data[:, 24] / 10
+    heating = data[:, 25] / 10
+
+    # 5 minute intervals, means 12 to an hour, so one 1kW at one point is 1/12 kWh
+    total_consumption = np.sum(consumption) / 12
+    total_heating = np.sum(heating) / 12
+    cop = heating / consumption
+    daily_cop = np.nanmean(cop)
+
+    ax1 = plt.subplot(1, 1, 1)
+    ax1.plot(consumption, label=f'Electrical power: {total_consumption:.2f} kWh', color='red')
+    ax1.plot(heating, label=f'Heating power: {total_heating:.2f} kWh', color='lightgreen')
+    ax1.set_ylabel('kW')
+    ax2 = ax1.twinx()
+    ax2.plot(cop, label=f'Mean COP: {daily_cop:.2f}')
+    ax1.legend()
+    ax2.legend(loc='upper left')
+    plt.suptitle(f'{day}/{month}/{year}')
+    plt.show()
+
+
+def get_data_from_server(day, month, year):
     server = '192.168.1.147'
     port = '8000'
     data_dir = 'historic'
@@ -27,32 +53,7 @@ def main():
             timestamps.append(timestamp)
             data.append([float(val) for val in entry])
     data = np.array(data)
-    filtered_data = []
-    new_col = 0
-    for col in range(data.shape[1]):  # drop columns with all zeros (or sentinel) values
-        column = data[:, col]
-        if not (np.all(column == 0) or np.all(column == -9999)):
-            filtered_data.append(column)
-            new_col += 1
-    filtered_data = np.array(filtered_data).transpose()
-    # filtered_data[filtered_data == -9999] = np.nan
-    filtered_data = filtered_data / 10  # this appears to be the conversion used in the javascript file
-
-    # taken from Javascript plotting code
-    # (need to subtract 2 from the indices used there to allow for serial and timestamp)
-    consumption = data[:, 24] / 10
-    heating = data[:, 25] / 10
-    cop = heating / consumption
-    daily_cop = np.nanmean(cop)
-    ax1 = plt.subplot(1, 1, 1)
-    ax1.plot(consumption, label='Electrical power', color='red')
-    ax1.plot(heating, label='Heating power', color='lightgreen')
-    ax1.set_ylabel('kW')
-    ax2 = ax1.twinx()
-    ax2.plot(cop, label=f'Mean COP: {daily_cop:.2f}')
-    ax1.legend()
-    ax2.legend(loc='upper left')
-    plt.show()
+    return data
 
 
 if __name__ == '__main__':
