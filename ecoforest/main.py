@@ -8,7 +8,19 @@ class Dataset:
         self.day = day
         self.month = month
         self.year = year
-        self._full_data = self.get_data_from_server(day, month, year)
+        use_cache = True
+        if use_cache:
+            try:
+                with open(f'data/{year}-{month:02d}-{day}.csv') as file:
+                    contents = file.read()
+            except FileNotFoundError:
+                contents = self.get_data_from_server(day, month, year)
+                # TODO do not cache today's data
+                with open(f'data/{year}-{month:02d}-{day}.csv', 'w') as file:
+                    file.write(contents)
+        else:
+            contents = self.get_data_from_server(day, month, year)
+        self._full_data = self.process_file_data(contents)
 
         # indices taken from Javascript plotting code
         # (need to subtract 2 from the indices used there to allow for serial and timestamp)
@@ -56,7 +68,10 @@ class Dataset:
         response = requests.get(url,
                                 verify=False,
                                 headers={'Authorization': f'Basic {key}'})
-        contents = response.text
+        return response.text
+
+    @staticmethod
+    def process_file_data(contents):
         headers, *lines = contents.split('\n')
         timestamps = []
         data = []
@@ -72,11 +87,10 @@ class Dataset:
 def main():
     year = 2022
     month = 3
-    day = 15
-    data = Dataset(day, month, year)
-
-    data.plot()
-
+    # day = 10
+    for day in range(10, 17):
+        data = Dataset(day, month, year)
+        data.plot()
 
 
 if __name__ == '__main__':
