@@ -91,8 +91,8 @@ class Dataset:
             # ax1.text(chunk[0], np.max(chunk_heating)+0.1,
             #          f'{self.total_power(chunk_consumption):.1f} kWh\n'
             #          f'PF: {np.mean(chunk_cop):.2f}')
-        txt_height = 0.125 * (plt.ylim()[1] - plt.ylim()[0])
-        txt_width = 0.12 * (plt.xlim()[1] - plt.xlim()[0])
+        txt_height = 0.07 * (ax1.get_ylim()[1] - ax1.get_ylim()[0])
+        txt_width = 0.12 * (ax1.get_xlim()[1] - ax1.get_xlim()[0])
         # Get the corrected text positions, then write the text.
         text_positions = get_text_positions(x_data, y_data, txt_width, txt_height)
         text_plotter(x_data, y_data, labels, text_positions, ax1, txt_width, txt_height)
@@ -162,8 +162,8 @@ def text_plotter(x_data, y_data, labels, text_positions, axis, txt_width, txt_he
     for x, y, l, t in zip(x_data, y_data, labels, text_positions):
         axis.text(x - txt_width, 1.01*t, l, rotation=0, color='k')
         if y != t:
-            axis.arrow(x, t, 0, y-t, color='red', alpha=0.3, width=txt_width*0.1,
-                       head_width=txt_width, head_length=txt_height*0.5,
+            axis.arrow(x, t, 0, y-t, color='k', alpha=0.3, width=txt_width*0.02,
+                       head_width=txt_width*0.2, head_length=txt_height*0.3,
                        zorder=0, length_includes_head=True)
 
 
