@@ -46,7 +46,11 @@ def get_battery_history_for_site():
 
 
 def _start_of_next_month(date):
-    return date.replace(month=date.month + 1, day=1, hour=0, minute=0, second=0)
+    if date.month == 12:
+        new_date = date.replace(year=date.year+1, month=1, day=1, hour=0, minute=0, second=0)
+    else:
+        new_date = date.replace(month=date.month + 1, day=1, hour=0, minute=0, second=0)
+    return new_date
 
 
 def _end_of_month(start_date):
