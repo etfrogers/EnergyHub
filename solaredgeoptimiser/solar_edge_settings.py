@@ -98,7 +98,7 @@ class SolarEdgeConnection:
         try:
             site_name = WebDriverWait(self.driver, 10).until(
                 expected_conditions.presence_of_element_located((By.ID, "se-siteDetailsPanel-name")))
-            if not ('Dashboard' in self.driver.title and '4 Dene Road' in site_name.text):
+            if not ('SolarEdge | 4 Dene Road' in self.driver.title and '4 Dene Road' in site_name.text):
                 return False
         except TimeoutException:
             return False
