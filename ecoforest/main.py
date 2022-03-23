@@ -3,7 +3,9 @@ import datetime
 import requests
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.dates import DateFormatter
 
+CSV_DATE_FORMAT = '%Y/%m/%d %H:%M:%S'
 
 class Dataset:
     def __init__(self, date: datetime.date):
@@ -21,12 +23,31 @@ class Dataset:
                         file.write(contents)
         else:
             contents = self.get_data_from_server()
-        self._full_data = self.process_file_data(contents)
+        self.timestamps, self._full_data = self.process_file_data(contents)
 
         # indices taken from Javascript plotting code
         # (need to subtract 2 from the indices used there to allow for serial and timestamp)
-        self.consumption = self._full_data[:, 24] / 10
-        self.heating = self._full_data[:, 25] / 10
+        mapping = {24: 'consumption',
+                   25: 'heating',
+                   26: 'cooling',
+                   10: 'dhw_temp',
+                   # no index for 'pool'
+                   13: 'heating_buffer_temp',
+                   14: 'cooling_buffer_temp',
+                   15: 'production_supply',
+                   16: 'production_return',
+                   17: 'brine_supply',
+                   18: 'brine_return',
+                   11: 'outdoor_temp',
+                   }
+        for index, name in mapping.items():
+            setattr(self, name, self._full_data[:, index] / 10)
+        used_indices = np.array(mapping.keys())
+        unused_indices = np.array([i for i in range(self._full_data.shape[1])
+                                   if i not in mapping.keys()])
+        remaining_data = self._full_data[:, unused_indices]
+        plt.figure()
+        plt.plot(remaining_data)
 
     @staticmethod
     def total_power(series: np.ndarray):
@@ -62,17 +83,19 @@ class Dataset:
 
     def plot(self, axes=None):
         if axes is None:
+            plt.figure()
             ax1 = plt.subplot(1, 1, 1)
             ax2 = ax1.twinx()
         else:
             ax1, ax2 = axes
-        ax1.plot(self.consumption, label=f'Electrical power: {self.total_consumption:.2f} kWh', color='red')
-        ax1.plot(self.heating, label=f'Heating power: {self.total_heating:.2f} kWh', color='lightgreen')
+        ax1.plot(self.timestamps, self.consumption, label=f'Electrical power: {self.total_consumption:.2f} kWh', color='red')
+        ax1.plot(self.timestamps, self.heating, label=f'Heating power: {self.total_heating:.2f} kWh', color='lightgreen')
         ax1.set_ylabel('kW')
-        ax2.plot(self.cop, label=f'Mean COP: {self.daily_cop:.2f}')
+        ax2.plot(self.timestamps, self.cop, label=f'Mean COP: {self.daily_cop:.2f}')
         ax1.legend(loc='upper right')
         ax2.legend(loc='upper left')
         plt.suptitle(f'{self.date_str}')
+        ax1.xaxis.set_major_formatter(self._time_format())
 
         x_data = []
         y_data = []
@@ -83,7 +106,7 @@ class Dataset:
             chunk_consumption = self.consumption[chunk_inds]
             chunk_cop = self.cop[chunk_inds]
             assert not np.any(np.isnan(chunk_cop))
-            x_data.append(chunk[0])
+            x_data.append(self.timestamps[chunk[0]])
             y_data.append(np.max(chunk_heating)+0.1)
             label = (f'{self.total_power(chunk_consumption):.1f} kWh\n'
                      + f'PF: {np.mean(chunk_cop):.2f}')
@@ -93,12 +116,17 @@ class Dataset:
             #          f'PF: {np.mean(chunk_cop):.2f}')
         txt_height = 0.07 * (ax1.get_ylim()[1] - ax1.get_ylim()[0])
         txt_width = 0.12 * (ax1.get_xlim()[1] - ax1.get_xlim()[0])
+        txt_width = datetime.timedelta(hours=1)
         # Get the corrected text positions, then write the text.
         text_positions = get_text_positions(x_data, y_data, txt_width, txt_height)
         text_plotter(x_data, y_data, labels, text_positions, ax1, txt_width, txt_height)
 
         plt.show()
         return [ax1, ax2]
+
+    @staticmethod
+    def _time_format():
+        return DateFormatter("%H:%M")
 
     @property
     def date_str(self):
@@ -129,10 +157,10 @@ class Dataset:
         for line in lines:
             if line:
                 _, timestamp, *entry = line.split(';')[:-1]
-                timestamps.append(timestamp)
+                timestamps.append(datetime.datetime.strptime(timestamp, CSV_DATE_FORMAT))
                 data.append([float(val) for val in entry])
         data = np.array(data)
-        return data
+        return timestamps, data
 
 
 def get_text_positions(x_data, y_data, txt_width, txt_height):
@@ -171,7 +199,7 @@ def main():
     year = 2022
     month = 3
     # day = 10
-    for day in range(15, 16):
+    for day in range(22, 23):
         data = Dataset(datetime.date(year, month, day))
         data.plot()
 
