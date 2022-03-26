@@ -4,8 +4,7 @@ import logging
 from solaredgeoptimiser import yr_client
 from solaredgeoptimiser.config import config, LOG_TIME_FORMAT
 from solaredgeoptimiser.solar_edge_settings import SolarEdgeConnection
-from solaredgeoptimiser.solar_edge_api import get_power_flow, get_battery_level, BatteryNotFoundError
-from solaredgeoptimiser.yr_client import get_sunrise_sunset
+from solaredgeoptimiser.solar_edge_api import get_battery_level, BatteryNotFoundError
 
 logger = logging.getLogger('solaredgeoptimiser.main')
 
@@ -30,7 +29,6 @@ def test():
 
 def main():
     check_for_clipped_charge()
-    # get_sunrise_sunset(config['site-location'])
 
 
 def check_for_clipped_charge(interactive=True):
@@ -49,7 +47,7 @@ def check_for_clipped_charge(interactive=True):
         battery_threshold = config['min-morning-charge']
 
     logger.info(check_message + day_to_check.strftime('%d-%m-%Y') +
-                 f' (battery threshold: {battery_threshold}%)')
+                f' (battery threshold: {battery_threshold}%)')
     forecast = yr_client.get_forecast(config['site-location'])
     start_time = datetime.datetime.combine(day_to_check, start_of_collection_time)
     end_time = datetime.datetime.combine(day_to_check, start_of_peak_time)
@@ -65,10 +63,14 @@ def check_for_clipped_charge(interactive=True):
         logger.info(f'Cloud coverage of {avg_coverage:.1f}% is greater than 50%. '
                     f'Not switching to clipped charge')
     else:
-        logger.info(f'Switching to clipped charge for {day_to_check.strftime(LOG_TIME_FORMAT)}')
+        if datetime.datetime.now().astimezone().utcoffset().seconds == 0:
+            profile_name = 'Clipped charge 9-15'
+        else:
+            profile_name = 'Clipped charge'
+        logger.info(f'Switching to "{profile_name}" for {day_to_check.strftime(LOG_TIME_FORMAT)}')
         with SolarEdgeConnection(interactive) as se:
             se.go_to_storage_profile()
-            se.add_special_day('Clipped charge', day_to_check)
+            se.add_special_day(profile_name, day_to_check)
 
 
 if __name__ == '__main__':
