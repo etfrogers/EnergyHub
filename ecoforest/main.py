@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from matplotlib.dates import DateFormatter
 
 CSV_DATE_FORMAT = '%Y/%m/%d %H:%M:%S'
+EXPLORE_UNUSED_DATA = False
+
 
 class Dataset:
     def __init__(self, date: datetime.date):
@@ -25,6 +27,11 @@ class Dataset:
             contents = self.get_data_from_server()
         self.timestamps, self._full_data = self.process_file_data(contents)
 
+        self.heating = self.consumption = self.cooling = None
+        self.dhw_temp = self.heating_buffer_temp = self.cooling_buffer_temp = None
+        self.production_supply = self.production_return = self.brine_supply = self.brine_return = None
+        self.outdoor_temp = None
+
         # indices taken from Javascript plotting code
         # (need to subtract 2 from the indices used there to allow for serial and timestamp)
         mapping = {24: 'consumption',
@@ -39,15 +46,32 @@ class Dataset:
                    17: 'brine_supply',
                    18: 'brine_return',
                    11: 'outdoor_temp',
+                   19: 'zone_1',
+                   20: 'zone_2',
+                   21: 'zone_3',
+                   22: 'zone_4',
                    }
         for index, name in mapping.items():
             setattr(self, name, self._full_data[:, index] / 10)
-        used_indices = np.array(mapping.keys())
-        unused_indices = np.array([i for i in range(self._full_data.shape[1])
-                                   if i not in mapping.keys()])
-        remaining_data = self._full_data[:, unused_indices]
-        plt.figure()
-        plt.plot(remaining_data)
+        if EXPLORE_UNUSED_DATA:
+            speeds = [7, 8]
+            plt.figure()
+            for i in speeds:
+                plt.plot(self.timestamps, self._full_data[:, i] / 10, label=str(i))
+            plt.gca().xaxis.set_major_formatter(self._time_format())
+            plt.legend()
+            plt.title('Speeds')
+            unused_indices = np.array([i for i in range(self._full_data.shape[1])
+                                       if not (i in mapping.keys() or i in speeds)])
+
+            plt.figure()
+            for i in unused_indices:
+                data = self._full_data[:, i] / 10
+                if np.all(np.isclose(data, 0)):
+                    continue
+                plt.plot(self.timestamps, data, label=str(i))
+            plt.gca().xaxis.set_major_formatter(self._time_format())
+            plt.legend()
 
     @staticmethod
     def total_power(series: np.ndarray):
@@ -120,6 +144,21 @@ class Dataset:
         # Get the corrected text positions, then write the text.
         text_positions = get_text_positions(x_data, y_data, txt_width, txt_height)
         text_plotter(x_data, y_data, labels, text_positions, ax1, txt_width, txt_height)
+
+        plt.figure()
+        plt.plot(self.timestamps, self.dhw_temp, label='DHW')
+        plt.plot(self.timestamps, self.heating_buffer_temp, label='Heating Buffer')
+        plt.plot(self.timestamps, self.production_supply, label='Production Flow')
+        plt.plot(self.timestamps, self.production_return, label='Production Return')
+        plt.plot(self.timestamps, self.brine_supply, label='Brine Return')
+        plt.plot(self.timestamps, self.brine_return, label='Brine Return')
+        plt.gca().xaxis.set_major_formatter(self._time_format())
+        plt.legend()
+
+        plt.figure()
+        plt.plot(self.timestamps, self.outdoor_temp, label='Outdoor')
+        plt.gca().xaxis.set_major_formatter(self._time_format())
+        plt.legend()
 
         plt.show()
         return [ax1, ax2]
@@ -199,7 +238,7 @@ def main():
     year = 2022
     month = 3
     # day = 10
-    for day in range(22, 23):
+    for day in range(20, 21):
         data = Dataset(datetime.date(year, month, day))
         data.plot()
 
