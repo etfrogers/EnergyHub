@@ -1,3 +1,4 @@
+import argparse
 import datetime
 import logging
 
@@ -27,11 +28,11 @@ def test():
     # logger.info(f'Current power measured as {power} kW')
 
 
-def main():
-    check_for_clipped_charge()
+def main(args):
+    check_for_clipped_charge(force=args.force)
 
 
-def check_for_clipped_charge(interactive=True):
+def check_for_clipped_charge(interactive=True, force=False):
     logger.info('Starting check for clipped charge')
     start_of_collection_time = datetime.time(hour=10)
     start_of_peak_time = config['peak-time'][0]
@@ -59,7 +60,7 @@ def check_for_clipped_charge(interactive=True):
     if battery_charge < battery_threshold:
         logger.info(f'Battery level of {battery_charge:.1f}% is less than '
                     f'{battery_threshold}%. Not switching to clipped charge')
-    elif avg_coverage > 50:
+    elif avg_coverage > 50 and not force:
         logger.info(f'Cloud coverage of {avg_coverage:.1f}% is greater than 50%. '
                     f'Not switching to clipped charge')
     else:
@@ -76,6 +77,11 @@ def check_for_clipped_charge(interactive=True):
 if __name__ == '__main__':
     # noinspection PyBroadException
     try:
-        main()
+        parser = argparse.ArgumentParser()
+        parser.add_argument("-f", "--force",
+                            help="Switch on a clipped-charge day regardless of cloud coverage",
+                            action="store_true")
+        args = parser.parse_args()
+        main(args)
     except Exception:
         logger.exception(str(Exception))
