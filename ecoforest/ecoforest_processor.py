@@ -1,6 +1,9 @@
 import datetime
+from enum import Enum
+from typing import Sequence, AnyStr, Dict, Union, Set
 
 import requests
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.dates import DateFormatter
@@ -64,6 +67,91 @@ class Dataset:
         return np.nanmean(self.cop)
 
 
+class ChunkClass(Enum):
+    DHW = 0
+    HEATING = 1
+    COMBINED = 2
+    SOLAR_DHW = 3
+    SOLAR_HEATING = 4
+    SOLAR_COMBINED = 5
+    LEGIONNAIRES = 6
+    LEGIONNAIRES_COMBINED = 7
+
+    @classmethod
+    def solar_types(cls):
+        return {ChunkClass.SOLAR_HEATING, ChunkClass.SOLAR_DHW, ChunkClass.SOLAR_COMBINED}
+
+    @classmethod
+    def heating_types(cls):
+        return {ChunkClass.SOLAR_HEATING, ChunkClass.HEATING}
+
+    @classmethod
+    def dhw_types(cls):
+        return {ChunkClass.DHW, ChunkClass.SOLAR_DHW}
+
+    @classmethod
+    def legionnaires_types(cls):
+        return {ChunkClass.LEGIONNAIRES, ChunkClass.LEGIONNAIRES_COMBINED}
+
+
+TANK_OFFSET_TEMP = 5
+DHW_SOLAR_SETPOINT = 55
+DHW_LEGIONNAIRES_SETPOINT = 65
+HEATING_SOLAR_SETPOINT = 60
+DHW_SETPOINT = 48
+TEMPERATURE_TOLERANCE = 2
+
+
+class ChunkTypeError(Exception):
+    pass
+
+
+class DataChunk(Dataset):
+
+    def __init__(self, *args, **kwargs):
+        super(DataChunk, self).__init__(*args, **kwargs)
+        assert not np.any(np.isnan(self.cop))
+
+    @property
+    def type(self) -> ChunkClass:
+        dhw_solar = dwh_legionnaires = heating_solar = False
+        dhw_diff = self.dhw_temp[-1] - self.dhw_temp[0]
+        dhw_increased = dhw_diff > TANK_OFFSET_TEMP - TEMPERATURE_TOLERANCE
+        if dhw_increased:
+            dhw_solar = DHW_SOLAR_SETPOINT < self.dhw_temp[-1] < DHW_LEGIONNAIRES_SETPOINT
+            dwh_legionnaires = self.dhw_temp[-1] > DHW_LEGIONNAIRES_SETPOINT
+
+        heating_diff = self.heating_buffer_temp[-1] - self.heating_buffer_temp[0]
+        heating_increased = heating_diff > TANK_OFFSET_TEMP - TEMPERATURE_TOLERANCE
+        if heating_increased:
+            heating_solar = self.heating_buffer_temp[-1] > HEATING_SOLAR_SETPOINT - TEMPERATURE_TOLERANCE
+
+        if dwh_legionnaires:
+            if heating_increased:
+                return ChunkClass.LEGIONNAIRES_COMBINED
+            else:
+                return ChunkClass.LEGIONNAIRES
+        elif dhw_solar:
+            if heating_increased:
+                return ChunkClass.SOLAR_COMBINED
+            else:
+                return ChunkClass.SOLAR_DHW
+        elif dhw_increased:
+            assert not heating_solar
+            if heating_increased:
+                return ChunkClass.COMBINED
+            else:
+                return ChunkClass.DHW
+        elif heating_solar:
+            assert not dhw_increased
+            return ChunkClass.SOLAR_HEATING
+        elif heating_increased:
+            assert not dhw_increased
+            return ChunkClass.HEATING
+        else:
+            raise ChunkTypeError('Type could not be determined')
+
+
 class DayData(Dataset):
     def __init__(self, date: datetime.date):
         self.date = date
@@ -91,11 +179,12 @@ class DayData(Dataset):
         switches = np.diff(is_on)
         starts = np.nonzero(switches == 1)[0]
         ends = np.nonzero(switches == -1)[0]
-        # line below will fail if the heat pump on over midnight.
+        # line below will fail if the heat pump is on over midnight.
         # If this occurs a special case will be needed
         assert starts.size == ends.size
         # returns inclusive inds (first non element and last nonzero element)
-        return zip(starts+1, ends)
+        for start_ind, end_ind in zip(starts+1, ends):
+            yield DataChunk(self.timestamps[start_ind:end_ind+1], self._data[start_ind:end_ind + 1])
 
     def explore_unused(self):
         speeds = [7, 8]
@@ -138,26 +227,34 @@ class DayData(Dataset):
         x_data = []
         y_data = []
         labels = []
+        properties = []
         for chunk in self.chunks():
-            chunk_inds = range(chunk[0], chunk[1] + 1)
-            chunk_heating = self.heating[chunk_inds]
-            chunk_consumption = self.consumption[chunk_inds]
-            chunk_cop = self.cop[chunk_inds]
-            assert not np.any(np.isnan(chunk_cop))
-            x_data.append(self.timestamps[chunk[0]])
-            y_data.append(np.max(chunk_heating) + 0.1)
-            label = (f'{self.total_power(chunk_consumption):.1f} kWh\n'
-                     + f'PF: {np.mean(chunk_cop):.2f}')
+            x_data.append(chunk.timestamps[0])
+            y_data.append(np.max(chunk.heating) + 0.1)
+            label = (f'{chunk.total_consumption:.1f} kWh\n'
+                     + f'PF: {chunk.mean_cop:.2f}')
             labels.append(label)
-            # ax1.text(chunk[0], np.max(chunk_heating)+0.1,
-            #          f'{self.total_power(chunk_consumption):.1f} kWh\n'
-            #          f'PF: {np.mean(chunk_cop):.2f}')
+            props = dict()
+            try:
+                chunk_type = chunk.type
+            except ChunkTypeError:
+                props.update({'backgroundcolor': 'red'})
+            else:
+                if chunk_type in ChunkClass.legionnaires_types():
+                    props.update({'backgroundcolor': 'blue'})
+                elif chunk_type in ChunkClass.heating_types():
+                    props.update({'color': 'red'})
+                elif chunk_type in ChunkClass.dhw_types():
+                    props.update({'color': 'blue'})
+                if chunk_type in ChunkClass.solar_types():
+                    props.update({'bbox': {'edgecolor': 'green', 'facecolor': 'white'}})
+
+            properties.append(props)
         txt_height = 0.07 * (ax1.get_ylim()[1] - ax1.get_ylim()[0])
-        txt_width = 0.12 * (ax1.get_xlim()[1] - ax1.get_xlim()[0])
         txt_width = datetime.timedelta(hours=1)
         # Get the corrected text positions, then write the text.
         text_positions = get_text_positions(x_data, y_data, txt_width, txt_height)
-        text_plotter(x_data, y_data, labels, text_positions, ax1, txt_width, txt_height)
+        text_plotter(x_data, y_data, labels, text_positions, ax1, txt_width, txt_height, properties)
 
         plt.figure()
         plt.plot(self.timestamps, self.dhw_temp, label='DHW')
@@ -212,7 +309,8 @@ class DayData(Dataset):
         return timestamps, data
 
 
-def get_text_positions(x_data, y_data, txt_width, txt_height):
+def get_text_positions(x_data: Sequence[float], y_data: Sequence[float],
+                       txt_width: Union[float, datetime.timedelta], txt_height: float):
     """https://stackoverflow.com/questions/8850142/matplotlib-overlapping-annotations"""
     a = list(zip(y_data, x_data))
     text_positions = y_data.copy()
@@ -234,14 +332,18 @@ def get_text_positions(x_data, y_data, txt_width, txt_height):
     return text_positions
 
 
-def text_plotter(x_data, y_data, labels, text_positions, axis, txt_width, txt_height):
+def text_plotter(x_data: Sequence[float], y_data: Sequence[float],
+                 labels: Sequence[AnyStr], text_positions: Sequence[float],
+                 axis: plt.Axes,
+                 txt_width: Union[float, datetime.timedelta], txt_height: float,
+                 text_properties: Sequence[Dict], **kwargs):
     """https://stackoverflow.com/questions/8850142/matplotlib-overlapping-annotations"""
-    for x, y, l, t in zip(x_data, y_data, labels, text_positions):
-        axis.text(x - txt_width, 1.01*t, l, rotation=0, color='k')
-        if y != t:
-            axis.arrow(x, t, 0, y-t, color='k', alpha=0.3, width=txt_width*0.02,
-                       head_width=txt_width*0.2, head_length=txt_height*0.3,
-                       zorder=0, length_includes_head=True)
+    for x, y, l, t, props in zip(x_data, y_data, labels, text_positions, text_properties):
+        axis.text(x - txt_width, 1.01*t, l, rotation=0, **props, **kwargs)
+        # if y != t:
+        #     axis.arrow(x, t, 0, y-t, color='k', alpha=0.3, width=txt_width*0.02,
+        #                head_width=txt_width*0.2, head_length=txt_height*0.3,
+        #                zorder=0, length_includes_head=True)
 
 
 def main():
@@ -249,7 +351,7 @@ def main():
     month = 3
     # day = 10
     datasets = []
-    for day in range(20, 21):
+    for day in range(15, 21):
         data = DayData(datetime.date(year, month, day))
         data.plot()
         datasets.append(data)
