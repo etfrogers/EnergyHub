@@ -1,6 +1,9 @@
+import calendar
 import datetime
+import functools
 from enum import Enum
-from typing import Sequence, AnyStr, Dict, Union, Set
+from functools import partial
+from typing import Sequence, AnyStr, Dict, Union, Set, Tuple, List
 
 import requests
 
@@ -13,7 +16,7 @@ EXPLORE_UNUSED_DATA = False
 TIME_FORMAT = DateFormatter("%H:%M")
 
 
-class Dataset:
+class BaseDataset:
     # indices taken from Javascript plotting code
     # (need to subtract 2 from the indices used there to allow for serial and timestamp)
     MAPPING = {24: 'consumption',
@@ -33,17 +36,6 @@ class Dataset:
                21: 'zone_3',
                22: 'zone_4',
                }
-
-    def __init__(self, timestamps, data):
-        self.heating = self.consumption = self.cooling = None
-        self.dhw_temp = self.heating_buffer_temp = self.cooling_buffer_temp = None
-        self.production_supply = self.production_return = self.brine_supply = self.brine_return = None
-        self.outdoor_temp = None
-
-        self.timestamps = timestamps
-        self._data = data
-        for index, name in self.MAPPING.items():
-            setattr(self, name, self._data[:, index])
 
     @staticmethod
     def total_power(series: np.ndarray):
@@ -65,6 +57,32 @@ class Dataset:
     @property
     def mean_cop(self):
         return np.nanmean(self.cop)
+
+    @functools.cache
+    def chunks(self):
+        is_on = (self.consumption != 0).astype(int)
+        switches = np.diff(is_on)
+        starts = np.nonzero(switches == 1)[0]
+        ends = np.nonzero(switches == -1)[0]
+        # line below will fail if the heat pump is on over midnight.
+        # If this occurs a special case will be needed
+        assert starts.size == ends.size
+        # returns inclusive inds (first non element and last nonzero element)
+        for start_ind, end_ind in zip(starts + 1, ends):
+            yield DataChunk(self.timestamps[start_ind:end_ind + 1], self._data[start_ind:end_ind + 1])
+
+
+class Dataset(BaseDataset):
+    def __init__(self, timestamps, data):
+        self.heating = self.consumption = self.cooling = None
+        self.dhw_temp = self.heating_buffer_temp = self.cooling_buffer_temp = None
+        self.production_supply = self.production_return = self.brine_supply = self.brine_return = None
+        self.outdoor_temp = None
+
+        self.timestamps = timestamps
+        self._data = data
+        for index, name in self.MAPPING.items():
+            setattr(self, name, self._data[:, index])
 
 
 class ChunkClass(Enum):
@@ -174,18 +192,6 @@ class DayData(Dataset):
         if EXPLORE_UNUSED_DATA:
             self.explore_unused()
 
-    def chunks(self):
-        is_on = (self.consumption != 0).astype(int)
-        switches = np.diff(is_on)
-        starts = np.nonzero(switches == 1)[0]
-        ends = np.nonzero(switches == -1)[0]
-        # line below will fail if the heat pump is on over midnight.
-        # If this occurs a special case will be needed
-        assert starts.size == ends.size
-        # returns inclusive inds (first non element and last nonzero element)
-        for start_ind, end_ind in zip(starts+1, ends):
-            yield DataChunk(self.timestamps[start_ind:end_ind+1], self._data[start_ind:end_ind + 1])
-
     def explore_unused(self):
         speeds = [7, 8]
         plt.figure()
@@ -292,7 +298,9 @@ class DayData(Dataset):
         key = '**REMOVED**'
         response = requests.get(url,
                                 verify=False,
-                                headers={'Authorization': f'Basic {key}'})
+                                headers={'Authorization': f'Basic {key}'},
+                                )
+        response.raise_for_status()
         return response.text
 
     @staticmethod
@@ -346,15 +354,53 @@ def text_plotter(x_data: Sequence[float], y_data: Sequence[float],
         #                zorder=0, length_includes_head=True)
 
 
+class CompositeMeta(type):
+    def __new__(cls, clsname, bases, namespace):
+        def getter(obj, name):
+            return np.concatenate([getattr(val, name) for val in obj.datasets])
+
+        new_props = {name:
+                     property(fget=partial(getter, name=name))
+                     for name in Dataset.MAPPING.values()}
+        namespace.update(new_props)
+        cls = super(CompositeMeta, cls).__new__(cls, clsname, bases, namespace)
+        return cls
+
+
+class CompositeDataSet(BaseDataset, metaclass=CompositeMeta):
+    def __init__(self, dates: Tuple[datetime.date, datetime.date]):
+        super().__init__()
+        self.datasets: List[DayData] = [DayData(date)for date in date_range(*dates)]
+
+
+def date_range(start_date: datetime.date, end_date: datetime.date):
+    date = start_date
+    while date <= end_date:
+        yield date
+        date += datetime.timedelta(days=1)
+
+
+class MonthDataSet(CompositeDataSet):
+    def __init__(self, year: int, month: int):
+        _, n_days = calendar.monthrange(year, month)
+        super().__init__((datetime.date(year, month, 1),
+                          datetime.date(year, month, n_days)))
+
+
 def main():
     year = 2022
-    month = 3
+    month = 6
     # day = 10
-    datasets = []
-    for day in range(15, 21):
-        data = DayData(datetime.date(year, month, day))
-        data.plot()
-        datasets.append(data)
+    # datasets = []
+    # for day in range(15, 21):
+    #     data = DayData(datetime.date(year, month, day))
+    #     data.plot()
+    #     datasets.append(data)
+    dataset = MonthDataSet(year, month)
+    for ds in dataset.datasets:
+        ds.plot()
+
+    print(dataset.mean_cop)
 
 
 if __name__ == '__main__':
