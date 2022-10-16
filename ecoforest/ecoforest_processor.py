@@ -50,16 +50,22 @@ class BaseDataset:
     def total_heating(self):
         return self.total_power(self.heating)
 
-    @property
-    def cop(self):
-        return self.heating / self.consumption
+    def cop(self, type_: 'ChunkClass' = None):
+        if type_ is None:
+            return self.heating / self.consumption
+        else:
+            chunks = [chunk for chunk in self.chunks() if chunk.type == type_]
+            return np.average([chunk.total_consumption for chunk in chunks],
+                              weights=[[chunk.length for chunk in chunks]])
 
-    @property
-    def mean_cop(self):
-        return np.nanmean(self.cop)
+    def mean_cop(self, type_: 'ChunkClass' = None):
+        return np.nanmean(self.cop(type_))
 
     @functools.cache
-    def chunks(self):
+    def chunks(self) -> list['DataChunk']:
+        return list(self._chunk_generator())
+
+    def _chunk_generator(self):
         is_on = (self.consumption != 0).astype(int)
         switches = np.diff(is_on)
         starts = np.nonzero(switches == 1)[0]
@@ -128,7 +134,7 @@ class DataChunk(Dataset):
 
     def __init__(self, *args, **kwargs):
         super(DataChunk, self).__init__(*args, **kwargs)
-        assert not np.any(np.isnan(self.cop))
+        assert not np.any(np.isnan(self.cop()))
 
     @property
     def type(self) -> ChunkClass:
@@ -224,7 +230,7 @@ class DayData(Dataset):
         ax1.plot(self.timestamps, self.heating, label=f'Heating power: {self.total_heating:.2f} kWh',
                  color='lightgreen')
         ax1.set_ylabel('kW')
-        ax2.plot(self.timestamps, self.cop, label=f'Mean COP: {self.mean_cop:.2f}')
+        ax2.plot(self.timestamps, self.cop(), label=f'Mean COP: {self.mean_cop():.2f}')
         ax1.legend(loc='upper right')
         ax2.legend(loc='upper left')
         # plt.suptitle(f'{self.date_str}')
@@ -238,7 +244,7 @@ class DayData(Dataset):
             x_data.append(chunk.timestamps[0])
             y_data.append(np.max(chunk.heating) + 0.1)
             label = (f'{chunk.total_consumption:.1f} kWh\n'
-                     + f'PF: {chunk.mean_cop:.2f}')
+                     + f'PF: {chunk.mean_cop():.2f}')
             labels.append(label)
             props = dict()
             try:
@@ -357,7 +363,7 @@ def text_plotter(x_data: Sequence[float], y_data: Sequence[float],
 class CompositeMeta(type):
     def __new__(cls, clsname, bases, namespace):
         def getter(obj, name):
-            return np.concatenate([getattr(val, name) for val in obj.datasets])
+            return np.concatenate([getattr(ds, name) for ds in obj.datasets])
 
         new_props = {name:
                      property(fget=partial(getter, name=name))
@@ -371,6 +377,14 @@ class CompositeDataSet(BaseDataset, metaclass=CompositeMeta):
     def __init__(self, dates: Tuple[datetime.date, datetime.date]):
         super().__init__()
         self.datasets: List[DayData] = [DayData(date)for date in date_range(*dates)]
+
+    @property
+    def timestamps(self):
+        return np.concatenate([ds.timestamps for ds in self.datasets])
+
+    @property
+    def _data(self):
+        return np.concatenate([ds._data for ds in self.datasets])
 
 
 def date_range(start_date: datetime.date, end_date: datetime.date):
@@ -400,7 +414,8 @@ def main():
     for ds in dataset.datasets:
         ds.plot()
 
-    print(dataset.mean_cop)
+    print(dataset.mean_cop())
+    print(dataset.mean_cop(ChunkClass.DHW))
 
 
 if __name__ == '__main__':
