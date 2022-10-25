@@ -51,22 +51,41 @@ def get_cloud_cover(forecast: dict, start_time: datetime.datetime, end_time: dat
 
 
 def get_sunrise_sunset(location: dict, date: datetime.date) -> Tuple[datetime.datetime, ...]:
-    params = location.copy()
-    params['date'] = date.strftime(YR_DATE_FORMAT)
-    params['offset'] = get_local_time_offset_string()
-    result = requests.get(YR_SUNRISE_URL+'.json', headers=USER_AGENT, params=params)
-    data = json.loads(result.text)
-    sun_data = data['location']['time'][0]
+    sun_data = get_sun_data(date, location)
     time_strings = (sun_data['sunrise']['time'], sun_data['sunset']['time'])
-    offset_str = get_local_time_offset_string()
-    assert all(s.endswith(offset_str) for s in time_strings)
-    time_strings = [s[:-len(offset_str)] for s in time_strings]
-    times = tuple(datetime.datetime.strptime(s, YR_TIME_FORMAT[:-1]) for s in time_strings)
+    times = tuple(yr_time_to_datetime(s, date) for s in time_strings)
     return times
 
 
-def get_local_time_offset_string():
-    offset = datetime.datetime.now().astimezone().utcoffset()
+def yr_time_to_datetime(time_string: str, date: datetime.date) -> datetime.datetime:
+    offset_str = get_local_time_offset_string(date)
+    assert time_string.endswith(offset_str)
+    time_string = time_string[:-len(offset_str)]
+    return datetime.datetime.strptime(time_string, YR_TIME_FORMAT[:-1])
+
+
+def get_sun_data(date: datetime.date, location: dict) -> dict:
+    data = get_astronomical_data(date, location)
+    sun_data = data['location']['time'][0]
+    return sun_data
+
+
+def get_astronomical_data(date: datetime.date, location: dict) -> dict:
+    params = location.copy()
+    params['date'] = date.strftime(YR_DATE_FORMAT)
+    params['offset'] = get_local_time_offset_string(date)
+    result = requests.get(YR_SUNRISE_URL + '.json', headers=USER_AGENT, params=params)
+    data = json.loads(result.text)
+    return data
+
+
+def get_local_time_offset_string(date: datetime.date = None):
+    if date is None:
+        date = datetime.datetime.now()
+    if isinstance(date, datetime.date):
+        # combine with noon to avoid DST errors if midnight is used.
+        date = datetime.datetime.combine(date, datetime.time(hour=12, minute=0))
+    offset = date.astimezone().utcoffset()
     sign = '-' if offset < datetime.timedelta(0) else '+'
     offset_str = str(offset)
     h, m, s = (int(part) for part in offset_str.split(':'))

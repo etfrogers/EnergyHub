@@ -8,15 +8,17 @@ from typing import List, Sequence
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.dates import DateFormatter
+from matplotlib.ticker import FuncFormatter
 from numpy_groupies import aggregate
 from scipy.interpolate import interp1d
 
+from solaredgeoptimiser.astro_data import get_sun_data
 from solaredgeoptimiser.solar_edge_api import get_power_history_for_site, API_TIME_FORMAT, get_battery_history_for_site
 
 
 # noinspection PyUnresolvedReferences
 class PowerHistory:
-    meters = ['consumption', 'production', 'feed_in', 'purchased', 'self_consumption']
+    meters = ['consumption', 'production', 'feed_in', 'purchased']  # , 'self_consumption']
 
     def __init__(self, get_from_server: bool = False):
         self._timestamp_list = []
@@ -158,7 +160,7 @@ class PowerHistory:
         return getattr(self, self._list_name(meter_name))
 
     def plot_production(self) -> None:
-        time = datetime.datetime(2021, 10, 25)
+        time = datetime.datetime(2021, 12, 25)
         indices = ((time < self.timestamps)
                    & (self.timestamps < (time + datetime.timedelta(days=1))))
         times = self.timestamps[indices]
@@ -174,7 +176,7 @@ class PowerHistory:
 
         ax2 = plt.subplot(3, 1, 2)
         plt.plot(times, self.consumption[indices], label='Consumption')
-        plt.plot(times, self.self_consumption[indices], label='Self Consumption')
+        # plt.plot(times, self.self_consumption[indices], label='Self Consumption')
         plt.legend()
         ax3 = plt.subplot(3, 1, 3)
         plt.plot(times, self.battery_production[indices], label='Battery production')
@@ -198,23 +200,43 @@ class PowerHistory:
         # General for BST. could be adjusted per day later if needed
         # Note: all times are forced to be on 1/1/2021
         # They need to be datetime not time objects to plot
-        solar_noon = datetime.datetime(year=2021, month=1, day=1,hour=13)
         if adjust_for_sunrise:
-            times = self.times
-            am_indices = times < solar_noon
+            times = self.timestamps
+            sun_data = [get_sun_data(d) for d in self.dates]
+            noons = np.array([day.solar_noon for day in sun_data])
+            sunrises = np.array([day.sunrise for day in sun_data])
+            sunsets = np.array([day.sunset for day in sun_data])
+            am_indices = times < noons
             am_times = times[am_indices]
             pm_times = times[~am_indices]
             am_production = self.solar_production[am_indices]
             pm_production = self.solar_production[~am_indices]
-            plt.plot(am_times, am_production, **plot_args)
+            am_seconds_axis = [td.total_seconds() for td in (am_times-sunrises[am_indices])]
+            pm_seconds_axis = [td.total_seconds() for td in (pm_times-sunsets[~am_indices])]
+            plt.subplot(2, 1, 1)
+            plt.plot(am_seconds_axis, am_production, **plot_args)
+            plt.gca().xaxis.set_major_formatter(FuncFormatter(self._timedelta_format))
+            plt.subplot(2, 1, 2)
+            plt.plot(pm_seconds_axis, pm_production, **plot_args)
+            plt.gca().xaxis.set_major_formatter(FuncFormatter(self._timedelta_format))
+
         else:
             plt.plot(self.times, self.solar_production, **plot_args)
-        plt.gca().xaxis.set_major_formatter(self._time_format())
+            plt.gca().xaxis.set_major_formatter(self._time_format())
         plt.show()
 
     @staticmethod
     def _time_format():
         return DateFormatter("%H:%M")
+
+    @staticmethod
+    def _timedelta_format(x, pos):
+        hours = int(x // 3600)
+        minutes = int((x % 3600) // 60)
+        # seconds = int(x%60)
+
+        return "{:d}:{:02d}".format(hours, minutes)
+        # return "{:d}:{:02d}:{:02d}".format(hours, minutes, seconds)
 
 
 for meter_ in PowerHistory.meters:
@@ -238,7 +260,7 @@ def list_indexed_by_list(lst: List, indices: List[int]) -> List:
 
 def main():
     history = PowerHistory(get_from_server=False)
-    # history.plot_production()
+    history.plot_production()
     history.plot_solar_waterfall()
 
 
