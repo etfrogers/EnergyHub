@@ -1,6 +1,7 @@
 import calendar
 import datetime
 import functools
+from abc import abstractmethod
 from enum import Enum
 from functools import partial
 from typing import Sequence, AnyStr, Dict, Union, Set, Tuple, List
@@ -37,10 +38,27 @@ class BaseDataset:
                22: 'zone_4',
                }
 
+    @property
+    @abstractmethod
+    def timestamps(self):
+        raise NotImplementedError()
+
+    @property
+    @abstractmethod
+    def data(self):
+        raise NotImplementedError()
+
+    @property
+    def length(self) -> datetime.timedelta:
+        return self.timestamps[-1] - self.timestamps[0]
+
     @staticmethod
     def total_power(series: np.ndarray):
         # 5 minute intervals, means 12 to an hour, so one 1kW at one point is 1/12 kWh
         return np.sum(series) / 12
+
+    def heating_power_of_type(self, type_: 'ChunkClass'):
+        return sum([c.total_heating for c in self.chunks() if c.type is type_])
 
     @property
     def total_consumption(self):
@@ -55,11 +73,17 @@ class BaseDataset:
             return self.heating / self.consumption
         else:
             chunks = [chunk for chunk in self.chunks() if chunk.type == type_]
-            return np.average([chunk.total_consumption for chunk in chunks],
-                              weights=[[chunk.length for chunk in chunks]])
+            if chunks:
+                return np.average([chunk.mean_cop() for chunk in chunks],
+                                  weights=[chunk.length for chunk in chunks])
+            else:
+                return 0.0
 
     def mean_cop(self, type_: 'ChunkClass' = None):
-        return np.nanmean(self.cop(type_))
+        if self.total_heating == 0:
+            return 0
+        else:
+            return np.nanmean(self.cop(type_))
 
     @functools.cache
     def chunks(self) -> list['DataChunk']:
@@ -75,7 +99,7 @@ class BaseDataset:
         assert starts.size == ends.size
         # returns inclusive inds (first non element and last nonzero element)
         for start_ind, end_ind in zip(starts + 1, ends):
-            yield DataChunk(self.timestamps[start_ind:end_ind + 1], self._data[start_ind:end_ind + 1])
+            yield DataChunk(self.timestamps[start_ind:end_ind + 1], self.data[start_ind:end_ind + 1])
 
 
 class Dataset(BaseDataset):
@@ -85,10 +109,18 @@ class Dataset(BaseDataset):
         self.production_supply = self.production_return = self.brine_supply = self.brine_return = None
         self.outdoor_temp = None
 
-        self.timestamps = timestamps
+        self._timestamps = timestamps
         self._data = data
         for index, name in self.MAPPING.items():
-            setattr(self, name, self._data[:, index])
+            setattr(self, name, self.data[:, index])
+
+    @property
+    def timestamps(self):
+        return self._timestamps
+
+    @property
+    def data(self):
+        return self._data
 
 
 class ChunkClass(Enum):
@@ -100,6 +132,7 @@ class ChunkClass(Enum):
     SOLAR_COMBINED = 5
     LEGIONNAIRES = 6
     LEGIONNAIRES_COMBINED = 7
+    UNKNOWN = 8
 
     @classmethod
     def solar_types(cls):
@@ -119,6 +152,7 @@ class ChunkClass(Enum):
 
 
 TANK_OFFSET_TEMP = 5
+DHW_OFFSET_TEMP = 4
 DHW_SOLAR_SETPOINT = 55
 DHW_LEGIONNAIRES_SETPOINT = 65
 HEATING_SOLAR_SETPOINT = 60
@@ -136,14 +170,20 @@ class DataChunk(Dataset):
         super(DataChunk, self).__init__(*args, **kwargs)
         assert not np.any(np.isnan(self.cop()))
 
+    def cop(self, type_: 'ChunkClass' = None):
+        if type_ is not None:
+            raise ValueError('Unexpected argument to chunk COP')
+        return self.heating / self.consumption
+
     @property
     def type(self) -> ChunkClass:
         dhw_solar = dwh_legionnaires = heating_solar = False
         dhw_diff = self.dhw_temp[-1] - self.dhw_temp[0]
-        dhw_increased = dhw_diff > TANK_OFFSET_TEMP - TEMPERATURE_TOLERANCE
+        dhw_increased = dhw_diff > DHW_OFFSET_TEMP - TEMPERATURE_TOLERANCE
         if dhw_increased:
+            print(f'End temp: {self.dhw_temp[-1]}')
             dhw_solar = DHW_SOLAR_SETPOINT < self.dhw_temp[-1] < DHW_LEGIONNAIRES_SETPOINT
-            dwh_legionnaires = self.dhw_temp[-1] > DHW_LEGIONNAIRES_SETPOINT
+            dwh_legionnaires = self.dhw_temp[-1] > DHW_LEGIONNAIRES_SETPOINT - TEMPERATURE_TOLERANCE
 
         heating_diff = self.heating_buffer_temp[-1] - self.heating_buffer_temp[0]
         heating_increased = heating_diff > TANK_OFFSET_TEMP - TEMPERATURE_TOLERANCE
@@ -173,7 +213,8 @@ class DataChunk(Dataset):
             assert not dhw_increased
             return ChunkClass.HEATING
         else:
-            raise ChunkTypeError('Type could not be determined')
+            print(dhw_diff, heating_diff)
+            return ChunkClass.UNKNOWN
 
 
 class DayData(Dataset):
@@ -202,16 +243,16 @@ class DayData(Dataset):
         speeds = [7, 8]
         plt.figure()
         for i in speeds:
-            plt.plot(self.timestamps, self._data[:, i] / 10, label=str(i))
+            plt.plot(self.timestamps, self.data[:, i] / 10, label=str(i))
         plt.gca().xaxis.set_major_formatter(TIME_FORMAT)
         plt.legend()
         plt.title('Speeds')
-        unused_indices = np.array([i for i in range(self._data.shape[1])
+        unused_indices = np.array([i for i in range(self.data.shape[1])
                                    if not (i in self.MAPPING.keys() or i in speeds)])
 
         plt.figure()
         for i in unused_indices:
-            data = self._data[:, i] / 10
+            data = self.data[:, i] / 10
             if np.all(np.isclose(data, 0)):
                 continue
             plt.plot(self.timestamps, data, label=str(i))
@@ -383,8 +424,8 @@ class CompositeDataSet(BaseDataset, metaclass=CompositeMeta):
         return np.concatenate([ds.timestamps for ds in self.datasets])
 
     @property
-    def _data(self):
-        return np.concatenate([ds._data for ds in self.datasets])
+    def data(self):
+        return np.concatenate([ds.data for ds in self.datasets])
 
 
 def date_range(start_date: datetime.date, end_date: datetime.date):
@@ -400,10 +441,68 @@ class MonthDataSet(CompositeDataSet):
         super().__init__((datetime.date(year, month, 1),
                           datetime.date(year, month, n_days)))
 
+    @functools.cached_property
+    def days(self):
+        return np.array([d.timestamps[0].day for d in self.datasets])
+
+    def plot_bar_chart(self):
+        plt.figure()
+        power_bars = stacked_bar(
+            self.days,
+            # [d.total_heating for d in self.datasets],
+            [d.heating_power_of_type(ChunkClass.DHW) for d in self.datasets],
+            [d.heating_power_of_type(ChunkClass.SOLAR_DHW) for d in self.datasets],
+            [d.heating_power_of_type(ChunkClass.LEGIONNAIRES) for d in self.datasets],
+            # [d.total_consumption for d in self.datasets],
+            )
+        colors = [bars.patches[0]._facecolor for bars in power_bars]
+        grouped_bar(self.days,
+                    # [-d.mean_cop() for d in self.datasets],
+                    [-d.mean_cop(ChunkClass.DHW) for d in self.datasets],
+                    [-d.mean_cop(ChunkClass.SOLAR_DHW) for d in self.datasets],
+                    [-d.mean_cop(ChunkClass.LEGIONNAIRES) for d in self.datasets],
+                    # [d.total_consumption for d in self.datasets],
+                    colors=colors,
+                    )
+        plt.axhline(y=0.0, color='k', linestyle='-')
+        plt.show()
+
+
+def grouped_bar(x, *args, total_width: float = 0.9, colors=None):
+    n_bars = len(args)
+    width = total_width / n_bars
+    for i in range(n_bars):
+        pos = i - (n_bars-1)/2
+        shift = width * pos
+        if colors:
+            kwargs = {'color': colors[i]}
+        else:
+            kwargs = {}
+        plt.bar(x + shift,
+                args[i],
+                width,
+                **kwargs)
+
+
+def stacked_bar(x, *args, total_width: float = 0.9):
+    n_bars = len(args)
+    bottom = 0
+    bars_sets = []
+    for i in range(n_bars):
+        if i >= 1:
+            bottom = args[i-1]
+        bars_sets.append(plt.bar(x,
+                                 args[i],
+                                 total_width,
+                                 bottom=bottom,
+                                 )
+                         )
+    return bars_sets
+
 
 def main():
     year = 2022
-    month = 6
+    month = 9
     # day = 10
     # datasets = []
     # for day in range(15, 21):
@@ -411,11 +510,14 @@ def main():
     #     data.plot()
     #     datasets.append(data)
     dataset = MonthDataSet(year, month)
-    for ds in dataset.datasets:
-        ds.plot()
+    # for ds in dataset.datasets:
+    #     ds.plot()
 
     print(dataset.mean_cop())
     print(dataset.mean_cop(ChunkClass.DHW))
+    print([c.type for c in dataset.chunks()])
+    print([d.mean_cop() for d in dataset.datasets])
+    dataset.plot_bar_chart()
 
 
 if __name__ == '__main__':
