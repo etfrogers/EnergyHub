@@ -12,12 +12,12 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 from importlib_resources import files
 
-from solaredgeoptimiser.config import config, TIMESTAMP
+from energyhub.config import config, TIMESTAMP
 
 DATE_RANGE_BOX_INPUT_FORMAT = '%d/%m/%Y'
 DATE_FROM_BOX_INPUT_FORMAT = '%m/%d/%Y'
 
-COOKIE_FILE_NAME = 'cookies.json'
+COOKIE_FILE_NAME = '../cache/cookies.json'
 COOKIE_BASE_PATH = 'solaredgeoptimiser'
 COOKIE_FILE_PATH = files(COOKIE_BASE_PATH).joinpath(COOKIE_FILE_NAME)
 

@@ -1,17 +1,21 @@
 import calendar
 import datetime
+import inspect
 import json
 import logging
+import os
+import pathlib
 from typing import Dict, Tuple
 
 import requests
 
-from solaredgeoptimiser.config import config
+from energyhub.config import config
 
 API_URL = 'https://monitoringapi.solaredge.com'
 API_DATE_FORMAT = "%Y-%m-%d"
 API_TIME_FORMAT = (API_DATE_FORMAT + " %H:%M:%S")
 logger = logging.getLogger(__name__)
+CACHEDIR = pathlib.Path(os.path.dirname(inspect.getsourcefile(lambda: 0))) / '..' / 'cache/'
 
 
 class BatteryNotFoundError(Exception):
@@ -81,7 +85,7 @@ def get_power_flow():
 
 def get_battery_level():
     logger.debug('Getting battery level')
-    start_time = datetime.datetime.now() - datetime.timedelta(minutes=15)
+    start_time = datetime.datetime.now() - datetime.timedelta(minutes=60)
     end_time = datetime.datetime.now() + datetime.timedelta(minutes=15)
     params = {'startTime': start_time, 'endTime': end_time}
     data = api_request('storageData', params)
@@ -91,7 +95,12 @@ def get_battery_level():
         msg = f'Expected 1 battery, but found {n_batteries}'
         logger.error(msg)
         raise BatteryNotFoundError(msg)
-    charge = data['storageData']['batteries'][0]['telemetries'][-1]['batteryPercentageState']
+    battery_data = data['storageData']['batteries'][0]
+    if battery_data['telemetryCount'] == 0:
+        msg = f'No telemetry data found'
+        logger.error(msg)
+        raise BatteryNotFoundError(msg)
+    charge = battery_data['telemetries'][-1]['batteryPercentageState']
     logger.debug(f'Battery charge is {charge}')
     return charge
 

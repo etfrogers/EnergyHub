@@ -12,9 +12,9 @@ from matplotlib.ticker import FuncFormatter
 from numpy_groupies import aggregate
 from scipy.interpolate import interp1d
 
-from solaredgeoptimiser.astro_data import get_sun_data
-from solaredgeoptimiser.solar_edge_api import get_power_history_for_site, API_TIME_FORMAT, get_battery_history_for_site
-
+from yrpy.astro_data import get_sun_data
+from solaredge.solar_edge_api import get_power_history_for_site, API_TIME_FORMAT, get_battery_history_for_site
+from solaredge.solar_edge_api import CACHEDIR
 
 # noinspection PyUnresolvedReferences
 class PowerHistory:
@@ -35,7 +35,7 @@ class PowerHistory:
     def load_power_history(self, get_from_server: bool = False) -> None:
         if get_from_server:
             get_power_history_for_site()
-        history_files = glob('power_details_*.json')
+        history_files = glob(str(CACHEDIR / 'power_details_*.json'))
         for filename in history_files:
             with open(filename) as file:
                 file_data = json.load(file)
@@ -61,7 +61,7 @@ class PowerHistory:
     def load_battery_history(self, get_from_server: bool = False) -> None:
         if get_from_server:
             get_battery_history_for_site()
-        history_files = glob('battery_details_*.json')
+        history_files = glob(str(CACHEDIR / 'battery_details_*.json'))
         for filename in history_files:
             with open(filename) as file:
                 file_data = json.load(file)

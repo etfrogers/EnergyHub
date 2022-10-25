@@ -2,10 +2,10 @@ import argparse
 import datetime
 import logging
 
-from solaredgeoptimiser import yr_client
-from solaredgeoptimiser.config import config, LOG_TIME_FORMAT
-from solaredgeoptimiser.solar_edge_settings import SolarEdgeConnection
-from solaredgeoptimiser.solar_edge_api import get_battery_level, BatteryNotFoundError
+from yrpy import yr_client
+from energyhub.config import config, LOG_TIME_FORMAT
+from solaredge.solar_edge_settings import SolarEdgeConnection
+from solaredge.solar_edge_api import get_battery_level, BatteryNotFoundError
 
 logger = logging.getLogger('solaredgeoptimiser.main')
 

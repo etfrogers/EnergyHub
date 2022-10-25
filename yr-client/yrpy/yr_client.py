@@ -1,12 +1,17 @@
+import inspect
 import json
 import datetime
+import os
+import pathlib
 from typing import Tuple
 from urllib.parse import urljoin
 import logging
 
 import requests
 
-from solaredgeoptimiser.config import config, TIMESTAMP, LOG_TIME_FORMAT
+from energyhub.config import TIMESTAMP, LOG_TIME_FORMAT
+
+CACHEDIR = pathlib.Path(os.path.dirname(inspect.getsourcefile(lambda: 0))) / '..' / 'cache/'
 
 YR_DATE_FORMAT = '%Y-%m-%d'
 YR_TIME_FORMAT = f'{YR_DATE_FORMAT}T%H:%M:%SZ'
@@ -26,7 +31,7 @@ def get_forecast(location: dict, forecast_style: str = 'compact'):
     response.raise_for_status()
     json_forecast = json.loads(response.text)
     # TODO write conditionally?
-    with open(f'forecast_{TIMESTAMP}.json', 'w') as file:
+    with open(CACHEDIR / f'forecast_{TIMESTAMP}.json', 'w') as file:
         json.dump(json_forecast, file, indent=4)
     return json_forecast
 

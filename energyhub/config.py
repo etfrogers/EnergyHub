@@ -1,5 +1,7 @@
 import datetime
+import inspect
 import logging
+import os.path
 import sys
 from typing import List
 
@@ -65,8 +67,8 @@ def setup_logging():
     console.setLevel(logging.DEBUG)
     console.setFormatter(formatter)
     logger_.addHandler(console)
-
-    file = logging.FileHandler("battery_optimiser.log", mode='a')
+    filedir = os.path.dirname(inspect.getsourcefile(lambda: 0))
+    file = logging.FileHandler(f"{filedir}/logs/battery_optimiser.log", mode='a')
     file.setFormatter(formatter)
     file.setLevel(logging.INFO)
     logger_.addHandler(file)
