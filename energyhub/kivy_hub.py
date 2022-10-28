@@ -16,27 +16,36 @@ from kivy.app import App
 from kivy.clock import Clock
 from kivy.properties import NumericProperty
 
+import solaredge.solar_edge_api
+
+
 # kivy.require('1.0.7')
 
 
 class EnergyHubApp(App):
     solar_production = NumericProperty(0.5)
+    battery_production = NumericProperty(0.5)
+    battery_level = NumericProperty(0.5)
 
     def __init__(self):
         super(EnergyHubApp, self).__init__()
 
     def on_solar_production(self, instance, value):
-        self.root.ids.solar_prod_display.text = f'{value/1000:.2f} kW'
+        self.root.ids.solar_prod_display.text = f'{value:.2f} kW'
+
+    def on_battery_production(self, instance, value):
+        self.root.ids.battery_prod_display.text = f'{value:.2f} kW'
+
+    def on_battery_level(self, instance, value):
+        self.root.ids.battery_level_display.text = f'{value:d} %'
 
     def refresh(self):
-        self.solar_production += 400
+        power_flow_data = solaredge.solar_edge_api.get_power_flow()
+        self.battery_production = power_flow_data['STORAGE']['currentPower']
+        self.battery_level = power_flow_data['STORAGE']['chargeLevel']
+        self.solar_production = power_flow_data['PV']['currentPower']
 
 
 if __name__ == '__main__':
     app = EnergyHubApp()
-
-    def callback(dt):
-        app.solar_production = 1230
-    Clock.schedule_once(callback, 3)
-    app.build()
     app.run()

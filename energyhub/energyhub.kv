@@ -9,11 +9,16 @@ BoxLayout:
         on_press: app.refresh()
     Label:
         text: 'Solar Production'
-        #size_hint_x: None
-        #size: self.texture_size
-        #pos_hint: {'right': 1}
     Label:
         id: solar_prod_display
-        text: '0 kW'
+        text: '- kW'
     Label:
-        text: 'this on bottom'
+        text: 'Battery Production'
+    Label:
+        id: battery_prod_display
+        text: '- kW'
+    Label:
+        text: 'Battery Level'
+    Label:
+        id: battery_level_display
+        text: '- %'
