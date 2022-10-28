@@ -1,6 +1,9 @@
 import calendar
 import datetime
 import functools
+import inspect
+import os
+import pathlib
 from abc import abstractmethod
 from enum import Enum
 from functools import partial
@@ -10,6 +13,7 @@ import requests
 
 import numpy as np
 import matplotlib.pyplot as plt
+import yaml
 from matplotlib.dates import DateFormatter
 
 CSV_DATE_FORMAT = '%Y/%m/%d %H:%M:%S'
@@ -333,19 +337,18 @@ class DayData(Dataset):
 
     @property
     def _cache_file(self):
-        return f'data/{self.date_str}.csv'
+        data_dir = pathlib.Path(os.path.dirname(inspect.getsourcefile(lambda: 0))) / 'data'
+        return data_dir / f'{self.date_str}.csv'
 
     def get_data_from_server(self):
-        server = '192.168.1.147'
-        port = '8000'
+        with open('ecoforest_config.yml') as file:
+            config = yaml.safe_load(file)
         data_dir = 'historic'
-        serial = '**REMOVED**'
-        filename = f'{self.date_str}_{serial}_1_historico.csv'
-        url = f'https://{server}:{port}/{data_dir}/{filename}'
-        key = '**REMOVED**'
+        filename = f'{self.date_str}_{config["serial_number"]}_1_historico.csv'
+        url = f'https://{config["server"]}:{config["port"]}/{data_dir}/{filename}'
         response = requests.get(url,
                                 verify=False,
-                                headers={'Authorization': f'Basic {key}'},
+                                headers={'Authorization': f'Basic {config["auth_key"]}'},
                                 )
         response.raise_for_status()
         return response.text
@@ -502,7 +505,7 @@ def stacked_bar(x, *args, total_width: float = 0.9):
 
 def main():
     year = 2022
-    month = 9
+    month = 10
     # day = 10
     # datasets = []
     # for day in range(15, 21):

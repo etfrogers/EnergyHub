@@ -6,3 +6,4 @@ battery_details_*.json
 power_details_*.json
 .idea/*
 **/logs/*
+ecoforest_config.yml
