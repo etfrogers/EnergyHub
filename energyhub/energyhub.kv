@@ -1,0 +1,19 @@
+#:kivy 1.0
+
+BoxLayout:
+    orientation: 'vertical'
+    Label:
+        text: 'Dene Road Energy Hub'
+    Button:
+        text: 'Refresh'
+        on_press: app.refresh()
+    Label:
+        text: 'Solar Production'
+        #size_hint_x: None
+        #size: self.texture_size
+        #pos_hint: {'right': 1}
+    Label:
+        id: solar_prod_display
+        text: '0 kW'
+    Label:
+        text: 'this on bottom'
