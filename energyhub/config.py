@@ -67,11 +67,11 @@ def setup_logging():
     console.setLevel(logging.DEBUG)
     console.setFormatter(formatter)
     logger_.addHandler(console)
-    filedir = os.path.dirname(inspect.getsourcefile(lambda: 0))
-    file = logging.FileHandler(f"{filedir}/logs/battery_optimiser.log", mode='a')
-    file.setFormatter(formatter)
-    file.setLevel(logging.INFO)
-    logger_.addHandler(file)
+    # filedir = os.path.dirname(inspect.getsourcefile(lambda: 0))
+    # file = logging.FileHandler(f"{filedir}/logs/battery_optimiser.log", mode='a')
+    # file.setFormatter(formatter)
+    # file.setLevel(logging.INFO)
+    # logger_.addHandler(file)
     return logger_
 
 

@@ -7,3 +7,7 @@ power_details_*.json
 .idea/*
 **/logs/*
 ecoforest_config.yml
+.buildozer
+*.apk
+sunrise_data.pkl
+android_log.txt
