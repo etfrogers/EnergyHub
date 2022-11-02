@@ -1,7 +1,7 @@
 #:kivy 1.0
 
-BoxLayout:
-    orientation: 'vertical'
+GridLayout:
+    cols: 2
     Label:
         text: 'Dene Road Energy Hub'
     Button:
@@ -18,7 +18,12 @@ BoxLayout:
         id: battery_prod_display
         text: '- kW'
     Label:
-        text: 'Battery Level'
+        text: 'Home Battery Level'
     Label:
         id: battery_level_display
+        text: '- %'
+    Label:
+        text: 'Car Battery Level'
+    Label:
+        id: car_battery_level_display
         text: '- %'

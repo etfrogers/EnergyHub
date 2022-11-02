@@ -27,6 +27,11 @@ class Config:
         self.reserve_capacity = yaml_data['reserve-capacity']
 
         self.peak_time = self.to_times(self.peak_time)
+        self._data = yaml_data
+
+    @property
+    def data(self):
+        return self._data
 
     def __getitem__(self, item):
         return getattr(self, self.key_to_attr(item))
