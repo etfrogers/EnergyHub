@@ -1,3 +1,6 @@
 [submodule "kivy-arrow"]
 	path = kivy-arrow
 	url = https://github.com/kamathln/kivy-arrow.git
+[submodule "mec_"]
+	path = mec_
+	url = https://github.com/ashleypittman/mec.git

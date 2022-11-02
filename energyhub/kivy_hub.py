@@ -16,6 +16,7 @@ from kivy.properties import NumericProperty
 
 import solaredge.solar_edge_api
 from energyhub.config import config
+from mec.zp import MyEnergiHost
 
 
 # kivy.require('1.0.7')
@@ -26,6 +27,8 @@ class EnergyHubApp(App):
     battery_production = NumericProperty(0.5)
     battery_level = NumericProperty(0.5)
     car_battery_level = NumericProperty(0.5)
+    eddi_power = NumericProperty(0.5)
+    zappi_power = NumericProperty(0.5)
 
     def __init__(self):
         super(EnergyHubApp, self).__init__()
@@ -34,11 +37,20 @@ class EnergyHubApp(App):
                                                config.data['jlr']['password'])
         self.car_connection.refresh_tokens()
 
+        self.my_energi_connection = MyEnergiHost(config.data['myenergi']['username'],
+                                                 config.data['myenergi']['api-key'])
+
     def on_solar_production(self, instance, value):
         self.root.ids.solar_prod_display.text = f'{value:.2f} kW'
 
     def on_battery_production(self, instance, value):
         self.root.ids.battery_prod_display.text = f'{value:.2f} kW'
+
+    def on_eddi_power(self, instance, value):
+        self.root.ids.eddi_power_display.text = f'{value:.2f} kW'
+
+    def on_zappi_power(self, instance, value):
+        self.root.ids.zappi_power_display.text = f'{value:.2f} kW'
 
     def on_battery_level(self, instance, value):
         self.root.ids.battery_level_display.text = f'{value:d} %'
@@ -54,6 +66,10 @@ class EnergyHubApp(App):
 
         vehicle = self.car_connection.vehicles[0]
         self.car_battery_level = int(vehicle.get_status('EV_STATE_OF_CHARGE'))
+
+        self.my_energi_connection.refresh()
+        self.zappi_power = self.my_energi_connection.state.zappi_list()[0].charge_rate
+        self.eddi_power = self.my_energi_connection.state.eddi_list()[0].charge_rate
 
 
 if __name__ == '__main__':
