@@ -7,3 +7,6 @@
 [submodule "kivy_arrow"]
 	path = kivy_arrow
 	url = https://github.com/kamathln/kivy-arrow.git
+[submodule "SolarEdgeClient"]
+	path = SolarEdgeClient
+	url = https://github.com/etfrogers/SolarEdgeClient.git
