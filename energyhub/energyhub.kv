@@ -63,6 +63,8 @@
         o_y: self.parent.height * 0.7
         distance: self.parent.width * 0.2
         angle: 0
+        head_size: 10 + (30 * app.battery_production / 5)
+        reverse_arrow: app.battery_state == 'Charging'
     Label:
         text: f'{app.battery_production} kW'
         pos_hint: {'y': 0.7, 'x': 0.35}
@@ -74,6 +76,16 @@
         text: f'{app.battery_level} %'
         pos_hint: {'y': 0.65, 'x': 0.15}
         size_hint: (0.05, 0.1)
+#    Arrow:
+#        o_x: self.parent.width * 0.7
+#        o_y: self.parent.height * 0.7
+#        distance: self.parent.width * 0.2
+#        angle: 180
+#    Label:
+#        text: f'{app.grid_power} kW'
+#        pos_hint: {'y': 0.7, 'x': 0.65}
+#        size_hint: (0.1, 0.1)
+
     Label:
         text: 'Car Battery Level'
     Label:
@@ -86,3 +98,5 @@
         text: 'Eddi Current Power'
     Label:
         text: f'{app.eddi_power} kW'
+
+CurrentStatus

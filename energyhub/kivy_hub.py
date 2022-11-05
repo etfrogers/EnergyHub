@@ -12,7 +12,7 @@ contains a root Widget.
 '''
 import jlrpy
 from kivy.app import App
-from kivy.properties import NumericProperty, AliasProperty
+from kivy.properties import NumericProperty, AliasProperty, StringProperty
 import ssl
 from contextlib import AbstractContextManager
 
@@ -29,8 +29,10 @@ from kivy_arrow.arrow import Arrow
 
 class EnergyHubApp(App):
     solar_production = NumericProperty(0.5)
-    battery_production = NumericProperty(0.5)
+    battery_production = NumericProperty(4)
+    grid_power = NumericProperty(0.5)
     battery_level = NumericProperty(0.5)
+    battery_state = StringProperty('Charging')
     car_battery_level = NumericProperty(0.5)
     eddi_power = NumericProperty(0.5)
     zappi_power = NumericProperty(0.5)
@@ -45,29 +47,13 @@ class EnergyHubApp(App):
         self.my_energi_connection = MyEnergiHost(config.data['myenergi']['username'],
                                                  config.data['myenergi']['api-key'])
 
-    def on_solar_production(self, instance, value):
-        self.root.ids.solar_prod_display.text = f'{value:.2f} kW'
-
-    def on_battery_production(self, instance, value):
-        self.root.ids.battery_prod_display.text = f'{value:.2f} kW'
-
-    def on_eddi_power(self, instance, value):
-        self.root.ids.eddi_power_display.text = f'{value:.2f} kW'
-
-    def on_zappi_power(self, instance, value):
-        self.root.ids.zappi_power_display.text = f'{value:.2f} kW'
-
-    def on_battery_level(self, instance, value):
-        self.root.ids.battery_level_display.text = f'{value:d} %'
-
-    def on_car_battery_level(self, instance, value):
-        self.root.ids.car_battery_level_display.text = f'{value:d} %'
-
     def refresh(self):
         power_flow_data = solaredge.solar_edge_api.get_power_flow()
         self.battery_production = power_flow_data['STORAGE']['currentPower']
         self.battery_level = power_flow_data['STORAGE']['chargeLevel']
+        self.battery_state = power_flow_data['STORAGE']['status']
         self.solar_production = power_flow_data['PV']['currentPower']
+        self.grid_power = power_flow_data['GRID']['currentPower']
 
         vehicle = self.car_connection.vehicles[0]
         self.car_battery_level = int(vehicle.get_status('EV_STATE_OF_CHARGE'))
