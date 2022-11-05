@@ -105,6 +105,10 @@ class BaseDataset:
         for start_ind, end_ind in zip(starts + 1, ends):
             yield DataChunk(self.timestamps[start_ind:end_ind + 1], self.data[start_ind:end_ind + 1])
 
+    @property
+    def is_empty(self):
+        return len(self.timestamps) == 0
+
 
 class Dataset(BaseDataset):
     def __init__(self, timestamps, data):
@@ -231,7 +235,7 @@ class DayData(Dataset):
                     contents = file.read()
             except FileNotFoundError:
                 contents = self.get_data_from_server()
-                if self.date != datetime.datetime.today().date():
+                if contents and self.date != datetime.datetime.today().date():
                     # do not cache today's data as it will change
                     with open(self._cache_file, 'w') as file:
                         file.write(contents)
@@ -350,7 +354,13 @@ class DayData(Dataset):
                                 verify=False,
                                 headers={'Authorization': f'Basic {config["auth_key"]}'},
                                 )
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError:
+            if response.status_code == 404:
+                return ''
+            else:
+                raise
         return response.text
 
     @staticmethod
@@ -363,7 +373,10 @@ class DayData(Dataset):
                 _, timestamp, *entry = line.split(';')[:-1]
                 timestamps.append(datetime.datetime.strptime(timestamp, CSV_DATE_FORMAT))
                 data.append([float(val) for val in entry])
-        data = np.array(data) / 10
+        if data:
+            data = np.array(data) / 10
+        else:
+            data = np.zeros((0, 30))  # each file has 30 columns, here we set n_rows to 0
         return timestamps, data
 
 
@@ -446,24 +459,24 @@ class MonthDataSet(CompositeDataSet):
 
     @functools.cached_property
     def days(self):
-        return np.array([d.timestamps[0].day for d in self.datasets])
+        return np.array([d.timestamps[0].day for d in self.datasets if not d.is_empty])
 
     def plot_bar_chart(self):
         plt.figure()
         power_bars = stacked_bar(
             self.days,
             # [d.total_heating for d in self.datasets],
-            [d.heating_power_of_type(ChunkClass.DHW) for d in self.datasets],
-            [d.heating_power_of_type(ChunkClass.SOLAR_DHW) for d in self.datasets],
-            [d.heating_power_of_type(ChunkClass.LEGIONNAIRES) for d in self.datasets],
+            [d.heating_power_of_type(ChunkClass.DHW) for d in self.datasets if not d.is_empty],
+            [d.heating_power_of_type(ChunkClass.SOLAR_DHW) for d in self.datasets if not d.is_empty],
+            [d.heating_power_of_type(ChunkClass.LEGIONNAIRES) for d in self.datasets if not d.is_empty],
             # [d.total_consumption for d in self.datasets],
             )
         colors = [bars.patches[0]._facecolor for bars in power_bars]
         grouped_bar(self.days,
                     # [-d.mean_cop() for d in self.datasets],
-                    [-d.mean_cop(ChunkClass.DHW) for d in self.datasets],
-                    [-d.mean_cop(ChunkClass.SOLAR_DHW) for d in self.datasets],
-                    [-d.mean_cop(ChunkClass.LEGIONNAIRES) for d in self.datasets],
+                    [-d.mean_cop(ChunkClass.DHW) for d in self.datasets if not d.is_empty],
+                    [-d.mean_cop(ChunkClass.SOLAR_DHW) for d in self.datasets if not d.is_empty],
+                    [-d.mean_cop(ChunkClass.LEGIONNAIRES) for d in self.datasets if not d.is_empty],
                     # [d.total_consumption for d in self.datasets],
                     colors=colors,
                     )
@@ -505,7 +518,7 @@ def stacked_bar(x, *args, total_width: float = 0.9):
 
 def main():
     year = 2022
-    month = 10
+    month = 11
     # day = 10
     # datasets = []
     # for day in range(15, 21):
