@@ -18,7 +18,7 @@
             pos: (self.x, self.y)
             size: (self.width, self.height * 0.95 * app.battery_level/100)
         Color:
-            rgba: 0, 0, 0, 1
+            rgb: 0, 0, 0
         Line:
             width: 4.
             rectangle: (self.x, self.y, self.width, self.height * .95)
@@ -30,62 +30,65 @@
 <CurrentStatus@FloatLayout>:
     canvas.before:
         Color:
-            rgba: 1, 1, 1, 1
+            rgb: 1, 1, 1
         Rectangle:
             pos: self.pos
             size: self.size
-#    cols: 2
-    Label:
-        text: 'Dene Road Energy Hub'
-        pos_hint: {'centre_x': 0.0, 'y': 0.45}
     IconButton:
         source: 'energyhub/resources/icons8-reset-48.png'
         text: 'Refresh'
         on_press: app.refresh()
-        pos_hint: {'x': 0.9, 'y': 0.9}
+        pos_hint: {'x': 0.86, 'y': 0.02}
         size_hint: (0.1, 0.1)
     Image:
         source: 'energyhub/resources/Solar_panel_icon.png'
-        size_hint: (0.1, 0.1)
+        size_hint: (0.3, 0.1)
         allow_stretch: False
-        pos_hint: {'x': 0.5 - ((self.width/self.parent.width) / 2), 'y': 0.8}
+        pos_hint: {'x': 0.5 - ((self.width/self.parent.width) / 2), 'y': 0.88}
     Arrow:
         o_x: self.parent.width * 0.5
-        o_y: self.parent.height * 0.8
+        o_y: self.parent.height * 0.9
         distance: self.parent.height * 0.1
         angle: 270
+        head_size: app.calculate_arrow_size(app.solar_production)
     Label:
         text: f'{app.solar_production} kW'
-        pos_hint: {'y': 0.72, 'x': 0.52}
+        pos_hint: {'y': 0.925, 'x': 0.45}
         size_hint: (0.1, 0.1)
     Arrow:
         o_x: self.parent.width * 0.3
-        o_y: self.parent.height * 0.7
+        o_y: self.parent.height * 0.8
         distance: self.parent.width * 0.2
         angle: 0
-        head_size: 10 + (30 * app.battery_production / 5)
+        head_size: app.calculate_arrow_size(app.battery_production)
         reverse_arrow: app.battery_state == 'Charging'
     Label:
         text: f'{app.battery_production} kW'
-        pos_hint: {'y': 0.7, 'x': 0.35}
-        size_hint: (0.1, 0.1)
+        pos_hint: {'y': 0.8, 'x': 0.35}
+        size_hint: (0.1, 0.05)
     Battery:
-        size_hint: (0.034, 0.1)
-        pos_hint: {'x': 0.25 - ((self.width/self.parent.width) / 2), 'y': 0.65}
+        size_hint: (0.08, 0.1)
+        pos_hint: {'x': 0.25 - ((self.width/self.parent.width) / 2), 'y': 0.75}
     Label:
         text: f'{app.battery_level} %'
-        pos_hint: {'y': 0.65, 'x': 0.15}
+        pos_hint: {'y': 0.83, 'x': 0.24}
         size_hint: (0.05, 0.1)
-#    Arrow:
-#        o_x: self.parent.width * 0.7
-#        o_y: self.parent.height * 0.7
-#        distance: self.parent.width * 0.2
-#        angle: 180
-#    Label:
-#        text: f'{app.grid_power} kW'
-#        pos_hint: {'y': 0.7, 'x': 0.65}
-#        size_hint: (0.1, 0.1)
-
+    Image:
+        source: 'energyhub/resources/pylon256.png'
+        size_hint: (0.2, 0.2)
+        allow_stretch: False
+        pos_hint: {'x': 0.7, 'y': 0.7}
+    Arrow:
+        main_color: (0, 0, 0, 1) if app.grid_power == 0 else (1, 0.5, 0, 1)
+        o_x: self.parent.width * 0.7
+        o_y: self.parent.height * 0.8
+        distance: self.parent.width * 0.2
+        angle: 180
+        head_size: app.calculate_arrow_size(app.grid_power)
+    Label:
+        text: f'{app.grid_power} kW'
+        pos_hint: {'y': 0.8, 'x': 0.6}
+        size_hint: (0.05, 0.05)
     Label:
         text: 'Car Battery Level'
     Label:
