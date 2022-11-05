@@ -3,6 +3,19 @@
 <Label>
     color: (0, 0, 0, 1)
 
+<PowerLabel@Label>
+    val: 0
+    unit: 'kW'
+    unit_label: f'\n[size=20]{self.unit}[/size]' if self.vertical else f' {self.unit}'
+    text: f'{self.val}{self.unit_label}'
+    vertical: False
+    markup: True
+    halign: 'center'
+
+
+<PercentLabel@PowerLabel>
+    unit: '%'
+
 <Arrow>
     head_angle: 60
     main_color: (0, 0, 0, 1)
@@ -46,13 +59,14 @@
         allow_stretch: False
         pos_hint: {'x': 0.5 - ((self.width/self.parent.width) / 2), 'y': 0.88}
     Arrow:
+        main_color: (0, 0, 0, 1) if app.solar_production == 0 else (0, 0.8, 0, 1)
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.9
         distance: self.parent.height * 0.1
         angle: 270
         head_size: app.calculate_arrow_size(app.solar_production)
-    Label:
-        text: f'{app.solar_production} kW'
+    PowerLabel:
+        val: app.solar_production
         pos_hint: {'y': 0.925, 'x': 0.45}
         size_hint: (0.1, 0.1)
     Arrow:
@@ -62,15 +76,15 @@
         angle: 0
         head_size: app.calculate_arrow_size(app.battery_production)
         reverse_arrow: app.battery_state == 'Charging'
-    Label:
-        text: f'{app.battery_production} kW'
+    PowerLabel:
+        val: app.battery_production
         pos_hint: {'y': 0.8, 'x': 0.35}
         size_hint: (0.1, 0.05)
     Battery:
         size_hint: (0.08, 0.1)
         pos_hint: {'x': 0.25 - ((self.width/self.parent.width) / 2), 'y': 0.75}
-    Label:
-        text: f'{app.battery_level} %'
+    PercentLabel:
+        val: app.battery_level
         pos_hint: {'y': 0.83, 'x': 0.24}
         size_hint: (0.05, 0.1)
     Image:
@@ -89,6 +103,17 @@
         text: f'{app.grid_power} kW'
         pos_hint: {'y': 0.8, 'x': 0.6}
         size_hint: (0.05, 0.05)
+    Arrow:
+        o_x: self.parent.width * 0.5
+        o_y: self.parent.height * 0.8
+        distance: self.parent.height * 0.1
+        angle: 270
+        head_size: app.calculate_arrow_size(app.solar_edge_load)
+    PowerLabel:
+        val: app.solar_edge_load
+        pos_hint: {'y': 0.71, 'x': 0.57}
+        size_hint: (0.05, 0.05)
+        vertical: True
     Label:
         text: 'Car Battery Level'
     Label:

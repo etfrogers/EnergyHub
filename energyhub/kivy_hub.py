@@ -57,6 +57,7 @@ class EnergyHubApp(App):
     car_battery_level = NumericProperty(0.5)
     eddi_power = NumericProperty(0.5)
     zappi_power = NumericProperty(0.5)
+    solar_edge_load = NumericProperty(0.5)
 
     def __init__(self):
         super(EnergyHubApp, self).__init__()
@@ -92,7 +93,8 @@ class EnergyHubApp(App):
               size_hint=(0.8, 0.2)).open()
 
     def _refresh_my_energi(self):
-        self.my_energi_connection.refresh()
+        with NoSSLVerification():
+            self.my_energi_connection.refresh()
         self.zappi_power = self.my_energi_connection.state.zappi_list()[0].charge_rate
         self.eddi_power = self.my_energi_connection.state.eddi_list()[0].charge_rate
 
@@ -108,6 +110,7 @@ class EnergyHubApp(App):
         self.battery_state = power_flow_data['STORAGE']['status']
         self.solar_production = power_flow_data['PV']['currentPower']
         self.grid_power = power_flow_data['GRID']['currentPower']
+        self.solar_edge_load = power_flow_data['LOAD']['currentPower']
 
     def _get_battery_color(self):
         if self.battery_level > 80:
