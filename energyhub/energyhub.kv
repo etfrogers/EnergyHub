@@ -6,7 +6,7 @@
 <PowerLabel@Label>
     val: 0
     unit: 'kW'
-    unit_label: f'\n[size=20]{self.unit}[/size]' if self.vertical else f' {self.unit}'
+    unit_label: ('\n' if self.vertical else ' ' ) + f'[size={app.small_size}]{self.unit}[/size]'
     str_val: '%.*f' % (self.dp, self.val)
     text: f'{self.str_val}{self.unit_label}'
     dp: 2
@@ -102,8 +102,8 @@
         distance: self.parent.width * 0.2
         angle: 180
         head_size: app.calculate_arrow_size(app.grid_power)
-    Label:
-        text: f'{app.grid_power} kW'
+    PowerLabel:
+        val: app.grid_power
         pos_hint: {'y': 0.8, 'x': 0.6}
         size_hint: (0.05, 0.05)
     Arrow:

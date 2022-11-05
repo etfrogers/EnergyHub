@@ -22,7 +22,7 @@ from kivy.uix.image import Image
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 
-import solaredge.solar_edge_api
+from solaredge.solar_edge_api import SolarEdgeClient
 from energyhub.config import config
 from mec.zp import MyEnergiHost
 from kivy_arrow.arrow import Arrow
@@ -60,6 +60,10 @@ class EnergyHubApp(App):
     solar_edge_load = NumericProperty(0.5)
     heat_pump_power = NumericProperty(0)
 
+    @property
+    def small_size(self):
+        return 25 if platform == 'android' else 15
+
     def __init__(self):
         super(EnergyHubApp, self).__init__()
 
@@ -70,6 +74,9 @@ class EnergyHubApp(App):
 
         self.my_energi_connection = MyEnergiHost(config.data['myenergi']['username'],
                                                  config.data['myenergi']['api-key'])
+
+        self.solar_edge_connection = SolarEdgeClient(config.data['solar-edge']['api-key'],
+                                                     config.data['solar-edge']['site-id'])
 
     def refresh(self):
         try:
@@ -105,7 +112,7 @@ class EnergyHubApp(App):
             self.car_battery_level = int(vehicle.get_status('EV_STATE_OF_CHARGE'))
 
     def _refresh_solar_edge(self):
-        power_flow_data = solaredge.solar_edge_api.get_power_flow()
+        power_flow_data = self.solar_edge_connection.get_power_flow()
         self.battery_production = power_flow_data['STORAGE']['currentPower']
         self.battery_level = power_flow_data['STORAGE']['chargeLevel']
         self.battery_state = power_flow_data['STORAGE']['status']

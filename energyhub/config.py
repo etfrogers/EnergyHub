@@ -16,10 +16,10 @@ class Config:
         # for key, value in yaml_data.items():
         #     setattr(self, self.key_to_attr(key), value)
         #     print(f"self.{self.key_to_attr(key)} = yaml_data['{key}']")
-        self.solar_edge_api_key = yaml_data['solar-edge-api-key']
-        self.solar_edge_site_id = yaml_data['solar-edge-site-id']
-        self.solar_edge_account_id = yaml_data['solar-edge-account-id']
-        self.storage_profile_name = yaml_data['storage-profile-name']
+        # self.solar_edge_api_key = yaml_data['solar-edge']['api-key']
+        # self.solar_edge_site_id = yaml_data['solar-edge-site-id']
+        # self.solar_edge_account_id = yaml_data['solar-edge-account-id']
+        # self.storage_profile_name = yaml_data['storage-profile-name']
         self.site_location = yaml_data['site-location']
         self.peak_time = yaml_data['peak-time']
         self.overnight_usage = yaml_data['overnight-usage']
