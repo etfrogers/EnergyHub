@@ -7,7 +7,9 @@
     val: 0
     unit: 'kW'
     unit_label: f'\n[size=20]{self.unit}[/size]' if self.vertical else f' {self.unit}'
-    text: f'{self.val:.2f}{self.unit_label}'
+    str_val: '%.*f' % (self.dp, self.val)
+    text: f'{self.str_val}{self.unit_label}'
+    dp: 2
     vertical: False
     markup: True
     halign: 'center'
@@ -15,6 +17,7 @@
 
 <PercentLabel@PowerLabel>
     unit: '%'
+    dp: 0
 
 <Arrow>
     head_angle: 60
@@ -137,7 +140,13 @@
         o_y: self.parent.height * 0.5
         distance: self.parent.width * 0.2
         angle: 0
-        head_size: 0 # app.calculate_arrow_size(app.grid_power)
+        head_size: app.calculate_arrow_size(app.remaining_load)
+    PowerLabel:
+        val: app.remaining_load
+        vertical: False
+        pos_hint: {'y': 0.5, 'x': 0.6}
+        size_hint: (0.05, 0.05)
+    # TODO add light bulb icon
     Arrow:
         # from first branches to second branches
         o_x: self.parent.width * 0.5
@@ -155,39 +164,39 @@
 #        head_size: app.calculate_arrow_size(app.grid_power)
 
     Arrow:
+
 #        main_color: (0, 0, 0, 1) if app.grid_power == 0 else (1, 0.5, 0, 1)
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.4
         distance: self.parent.width * 0.2
         angle: 0
-#        head_size: app.calculate_arrow_size(app.grid_power)
+    PowerLabel:
+        val: app.eddi_power
+        vertical: False
+        pos_hint: {'y': 0.4, 'x': 0.6}
+        size_hint: (0.05, 0.05)
+    # TODO add immersion icon
     Arrow:
-        # to remainder load
+        # to car load
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.4
         distance: self.parent.height * 0.1
         angle: 270
-        head_size: app.calculate_arrow_size(app.remaining_load)
+        head_size: app.calculate_arrow_size(app.zappi_power)
     PowerLabel:
-        val: app.remaining_load
+        val: app.zappi_power
         vertical: True
         pos_hint: {'y': 0.3, 'x': 0.55}
         size_hint: (0.05, 0.1)
+    Image:
+        source: 'energyhub/resources/ipace.jpg'
+        size_hint: (0.5, 0.3)
+        allow_stretch: False
+        pos_hint: {'x': 0.25, 'y': 0.1}
+    PercentLabel:
+        val: app.car_battery_level
+        pos_hint: {'y': 0.12, 'x': 0.45}
+        size_hint: (0.1, 0.05)
 
 
-
-
-#    Label:
-#        text: 'Car Battery Level'
-#    Label:
-#        text: f'{app.car_battery_level} %'
-#    Label:
-#        text: 'Zappi Current Power'
-#    Label:
-#        text: f'{app.zappi_power} kW'
-#    Label:
-#        text: 'Eddi Current Power'
-#    Label:
-#        text: f'{app.eddi_power} kW'
-#
 CurrentStatus
