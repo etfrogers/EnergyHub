@@ -58,6 +58,7 @@ class EnergyHubApp(App):
     eddi_power = NumericProperty(0.5)
     zappi_power = NumericProperty(0.5)
     solar_edge_load = NumericProperty(0.5)
+    heat_pump_power = NumericProperty(0)
 
     def __init__(self):
         super(EnergyHubApp, self).__init__()
@@ -120,9 +121,16 @@ class EnergyHubApp(App):
         else:
             return 1, 0, 0, 1
 
+    def _get_remaining_load(self):
+        return self.solar_edge_load - (self.zappi_power + self.eddi_power + self.heat_pump_power)
+
     battery_color = AliasProperty(
         _get_battery_color,
         bind=['battery_level']
+    )
+    remaining_load = AliasProperty(
+        _get_remaining_load,
+        bind=['solar_edge_load', 'zappi_power', 'eddi_power', 'heat_pump_power']
     )
 
     @staticmethod
