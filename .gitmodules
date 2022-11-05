@@ -10,3 +10,6 @@
 [submodule "SolarEdgeClient"]
 	path = SolarEdgeClient
 	url = https://github.com/etfrogers/SolarEdgeClient.git
+[submodule "EcoforestClient"]
+	path = EcoforestClient
+	url = https://github.com/etfrogers/EcoforestClient.git
