@@ -10,7 +10,24 @@
     fletching_radius: 0
     arrow_at_midpoint: True
 
-FloatLayout:
+<Battery@Widget>
+    canvas:
+        Color:
+            rgba: app.battery_color
+        Rectangle:
+            pos: (self.x, self.y)
+            size: (self.width, self.height * 0.95 * app.battery_level/100)
+        Color:
+            rgba: 0, 0, 0, 1
+        Line:
+            width: 4.
+            rectangle: (self.x, self.y, self.width, self.height * .95)
+        Line:
+            width: 4.
+            rectangle: (self.x+self.width*0.4, self.y+self.height*.95, self.width*0.2, self.height * .05)
+
+
+<CurrentStatus@FloatLayout>:
     canvas.before:
         Color:
             rgba: 1, 1, 1, 1
@@ -35,23 +52,28 @@ FloatLayout:
     Arrow:
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.8
-        distance: 100
+        distance: self.parent.height * 0.1
         angle: 270
     Label:
-        text: 'Solar Production'
-    Label:
-        id: solar_prod_display
         text: f'{app.solar_production} kW'
         pos_hint: {'y': 0.72, 'x': 0.52}
         size_hint: (0.1, 0.1)
-    Label:
-        text: 'Battery Production'
+    Arrow:
+        o_x: self.parent.width * 0.3
+        o_y: self.parent.height * 0.7
+        distance: self.parent.width * 0.2
+        angle: 0
     Label:
         text: f'{app.battery_production} kW'
-    Label:
-        text: 'Home Battery Level'
+        pos_hint: {'y': 0.7, 'x': 0.35}
+        size_hint: (0.1, 0.1)
+    Battery:
+        size_hint: (0.034, 0.1)
+        pos_hint: {'x': 0.25 - ((self.width/self.parent.width) / 2), 'y': 0.65}
     Label:
         text: f'{app.battery_level} %'
+        pos_hint: {'y': 0.65, 'x': 0.15}
+        size_hint: (0.05, 0.1)
     Label:
         text: 'Car Battery Level'
     Label:

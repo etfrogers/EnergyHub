@@ -12,7 +12,12 @@ contains a root Widget.
 '''
 import jlrpy
 from kivy.app import App
-from kivy.properties import NumericProperty
+from kivy.properties import NumericProperty, AliasProperty
+import ssl
+from contextlib import AbstractContextManager
+
+from kivy.uix.behaviors import ButtonBehavior
+from kivy.uix.image import Image
 
 import solaredge.solar_edge_api
 from energyhub.config import config
@@ -70,6 +75,19 @@ class EnergyHubApp(App):
         self.my_energi_connection.refresh()
         self.zappi_power = self.my_energi_connection.state.zappi_list()[0].charge_rate
         self.eddi_power = self.my_energi_connection.state.eddi_list()[0].charge_rate
+
+    def _get_battery_color(self):
+        if self.battery_level > 80:
+            return 0, 1, 0, 1
+        elif self.battery_level > 40:
+            return 1, .5, 0, 1
+        else:
+            return 1, 0, 0, 1
+
+    battery_color = AliasProperty(
+        _get_battery_color,
+        bind=['battery_level']
+    )
 
 
 if __name__ == '__main__':
