@@ -3,6 +3,12 @@
 <Label>
     color: (0, 0, 0, 1)
 
+<Arrow>
+    head_angle: 60
+    main_color: (0, 0, 0, 1)
+    outline_color: (1, 1, 1, 0)
+    fletching_radius: 0
+
 FloatLayout:
     canvas.before:
         Color:
@@ -28,9 +34,6 @@ FloatLayout:
     Arrow:
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.8
-        head_angle: 60
-        main_color: (1, 0, 0, 1)
-        outline_color: self.main_color
         distance: 100
         angle: 270
     Label:
