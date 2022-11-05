@@ -1,39 +1,62 @@
 #:kivy 1.0
 
-GridLayout:
-    cols: 2
+<Label>
+    color: (0, 0, 0, 1)
+
+FloatLayout:
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+#    cols: 2
     Label:
         text: 'Dene Road Energy Hub'
-    Button:
+        pos_hint: {'centre_x': 0.0, 'y': 0.45}
+    IconButton:
+        source: 'energyhub/resources/icons8-reset-48.png'
         text: 'Refresh'
         on_press: app.refresh()
+        pos_hint: {'x': 0.9, 'y': 0.9}
+        size_hint: (0.1, 0.1)
+    Image:
+        source: 'energyhub/resources/Solar_panel_icon.png'
+        size_hint: (0.1, 0.1)
+        allow_stretch: False
+        pos_hint: {'x': 0.5 - ((self.width/self.parent.width) / 2), 'y': 0.8}
+    Arrow:
+        o_x: self.parent.width * 0.5
+        o_y: self.parent.height * 0.8
+        head_angle: 60
+        main_color: (1, 0, 0, 1)
+        outline_color: self.main_color
+        distance: 100
+        angle: 270
     Label:
         text: 'Solar Production'
     Label:
         id: solar_prod_display
-        text: '- kW'
+        text: f'{app.solar_production} kW'
+        pos_hint: {'y': 0.72, 'x': 0.52}
+        size_hint: (0.1, 0.1)
     Label:
         text: 'Battery Production'
     Label:
-        id: battery_prod_display
-        text: '- kW'
+        text: f'{app.battery_production} kW'
     Label:
         text: 'Home Battery Level'
     Label:
-        id: battery_level_display
-        text: '- %'
+        text: f'{app.battery_level} %'
     Label:
         text: 'Car Battery Level'
     Label:
-        id: car_battery_level_display
-        text: '- %'
+        text: f'{app.car_battery_level} %'
     Label:
         text: 'Zappi Current Power'
     Label:
-        id: zappi_power_display
-        text: '- kW'
+        text: f'{app.zappi_power} kW'
     Label:
         text: 'Eddi Current Power'
     Label:
-        id: eddi_power_display
-        text: '- kW'
+        text: f'{app.eddi_power} kW'

@@ -11,3 +11,6 @@ ecoforest_config.yml
 *.apk
 sunrise_data.pkl
 android_log.txt
+**/__pycache__/*
+**/.ipynb_checkpoints/*
+.DS_Store

@@ -17,7 +17,7 @@ from kivy.properties import NumericProperty
 import solaredge.solar_edge_api
 from energyhub.config import config
 from mec.zp import MyEnergiHost
-
+from kivy_arrow.arrow import Arrow
 
 # kivy.require('1.0.7')
 
