@@ -62,7 +62,7 @@
         allow_stretch: False
         pos_hint: {'x': 0.5 - ((self.width/self.parent.width) / 2), 'y': 0.88}
     Arrow:
-        main_color: (0, 0, 0, 1) if app.solar_production == 0 else (0, 0.8, 0, 1)
+        main_color: (0.5, 0.5, 0.5, 1) if app.solar_production == 0 else (0, 0.8, 0, 1)
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.9
         distance: self.parent.height * 0.1
@@ -73,6 +73,7 @@
         pos_hint: {'y': 0.925, 'x': 0.45}
         size_hint: (0.1, 0.1)
     Arrow:
+        main_color: (0.5, 0.5, 0.5, 1) if app.battery_production == 0 else (0, 0.8, 0, 1)
         o_x: self.parent.width * 0.3
         o_y: self.parent.height * 0.8
         distance: self.parent.width * 0.2
@@ -95,7 +96,7 @@
         size_hint: (0.2, 0.2)
         pos_hint: {'x': 0.75, 'y': 0.7}
     Arrow:
-        main_color: (0, 0, 0, 1) if app.grid_power == 0 else (1, 0.5, 0, 1)
+        main_color: (0.5, 0.5, 0.5, 1) if app.grid_power == 0 else ((0, 0.8, 0, 1) if app.grid_exporting else (1, 0.5, 0, 1))
         o_x: self.parent.width * 0.7
         o_y: self.parent.height * 0.8
         distance: self.parent.width * 0.2
