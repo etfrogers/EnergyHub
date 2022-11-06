@@ -22,6 +22,7 @@ from kivy.uix.image import Image
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 
+from ecoforest.ecoforest_processor import EcoforestClient
 from solaredge.solar_edge_api import SolarEdgeClient
 from energyhub.config import config
 from mec.zp import MyEnergiHost
@@ -72,7 +73,8 @@ class EnergyHubApp(App):
     eddi_power = NumericProperty(0.5)
     zappi_power = NumericProperty(0.5)
     solar_edge_load = NumericProperty(0.5)
-    heat_pump_power = NumericProperty(0)
+    heating_power = NumericProperty(0)
+    dhw_power = NumericProperty(0)
 
     @property
     def small_size(self):
@@ -91,6 +93,10 @@ class EnergyHubApp(App):
 
         self.solar_edge_connection = SolarEdgeClient(config.data['solar-edge']['api-key'],
                                                      config.data['solar-edge']['site-id'])
+        self.ecoforest_connection = EcoforestClient(config.data['ecoforest']['server'],
+                                                    config.data['ecoforest']['port'],
+                                                    config.data['ecoforest']['serial-number'],
+                                                    config.data['ecoforest']['auth-key'])
 
     def refresh(self):
         try:
@@ -147,6 +153,20 @@ class EnergyHubApp(App):
         self.solar_edge_load = power_flow_data['LOAD']['currentPower']
         self.grid_exporting = {'from': 'LOAD', 'to': 'Grid'} in power_flow_data['connections']
 
+    def _refresh_heat_pump(self):
+        status = self.ecoforest_connection.get_current_status()
+        self.heat_pump_power = status['ElectricalPower']
+        if status['DHWDemand']:
+            self.dhw_power = self.heat_pump_power
+            self.heating_power = 0
+        elif status['HeatingDemand']:
+            self.heating_power = self.heat_pump_power
+            self.dhw_power = 0
+        else:
+            assert self.heat_pump_power == 0
+            self.heating_power = 0
+            self.dhw_power = 0
+
     def _get_battery_color(self):
         if self.battery_level > 80:
             return 0, 1, 0, 1
@@ -156,7 +176,8 @@ class EnergyHubApp(App):
             return 1, 0, 0, 1
 
     def _get_remaining_load(self):
-        return self.solar_edge_load - (self.zappi_power + self.eddi_power + self.heat_pump_power)
+        return self.solar_edge_load - (self.zappi_power + self.eddi_power
+                                       + self.heating_power + self.dhw_power)
 
     def _get_car_charge_label(self):
         return (f'{self.car_battery_level} %'
@@ -172,7 +193,7 @@ class EnergyHubApp(App):
     )
     remaining_load = AliasProperty(
         _get_remaining_load,
-        bind=['solar_edge_load', 'zappi_power', 'eddi_power', 'heat_pump_power']
+        bind=['solar_edge_load', 'zappi_power', 'eddi_power', 'heating_power', 'dhw_power']
     )
     car_charge_label = AliasProperty(
         _get_car_charge_label,

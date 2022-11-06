@@ -141,7 +141,12 @@
         o_y: self.parent.height * 0.5
         distance: self.parent.width * 0.2
         angle: 180
-#        head_size: app.calculate_arrow_size(app.grid_power)
+        head_size: app.calculate_arrow_size(app.heating_power)
+    PowerLabel:
+        val: app.heating_power
+        vertical: False
+        pos_hint: {'y': 0.5, 'x': 0.35}
+        size_hint: (0.05, 0.05)
     Image:
         source: 'energyhub/resources/light-bulb-2-256.png'
         size_hint: (0.2, 0.2)
