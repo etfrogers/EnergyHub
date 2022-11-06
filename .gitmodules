@@ -1,12 +1,9 @@
-[submodule "kivy-arrow"]
-	path = kivy-arrow
-	url = https://github.com/kamathln/kivy-arrow.git
 [submodule "mec_"]
 	path = mec_
-	url = https://github.com/ashleypittman/mec.git
+	url = https://github.com/etfrogers/mec.git
 [submodule "kivy_arrow"]
 	path = kivy_arrow
-	url = https://github.com/kamathln/kivy-arrow.git
+	url = https://github.com/etfrogers/kivy-arrow.git
 [submodule "SolarEdgeClient"]
 	path = SolarEdgeClient
 	url = https://github.com/etfrogers/SolarEdgeClient.git
