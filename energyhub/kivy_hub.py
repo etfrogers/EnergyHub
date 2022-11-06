@@ -38,7 +38,8 @@ if platform != 'android':
 class NoSSLVerification(AbstractContextManager):
     def __enter__(self):
         self._original_context = ssl._create_default_https_context
-        ssl._create_default_https_context = ssl._create_unverified_context
+        if platform == 'android':
+            ssl._create_default_https_context = ssl._create_unverified_context
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         ssl._create_default_https_context = self._original_context
