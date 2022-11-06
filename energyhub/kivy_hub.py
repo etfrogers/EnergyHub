@@ -103,8 +103,11 @@ class EnergyHubApp(App):
     def _refresh_my_energi(self):
         with NoSSLVerification():
             self.my_energi_connection.refresh()
-        self.zappi_power = self.my_energi_connection.state.zappi_list()[0].charge_rate
-        self.eddi_power = self.my_energi_connection.state.eddi_list()[0].charge_rate
+        self.zappi_power = self.my_energi_connection.state.zappi_list()[0].charge_rate / 1000
+        self.eddi_power = self.my_energi_connection.state.eddi_list()[0].charge_rate / 1000
+        # TODO pstatus (connected)
+        #   status (waiting for export)
+        #   charge added
 
     def _refresh_car(self):
         with NoSSLVerification():
