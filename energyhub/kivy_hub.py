@@ -12,7 +12,7 @@ contains a root Widget.
 '''
 import jlrpy
 from kivy.app import App
-from kivy.properties import NumericProperty, AliasProperty, StringProperty
+from kivy.properties import NumericProperty, AliasProperty, StringProperty, BooleanProperty
 from kivy.utils import platform
 import ssl
 from contextlib import AbstractContextManager
@@ -49,13 +49,26 @@ class IconButton(ButtonBehavior, Image):
     pass
 
 
+def list_to_dict(list_of_kv_pairs):
+    return {v['key']: v['value'] for v in list_of_kv_pairs}
+
+
+def km_to_miles(km):
+    return 0.621371 * km
+
+
 class EnergyHubApp(App):
-    solar_production = NumericProperty(0.5)
+    solar_production = NumericProperty(0)
     battery_production = NumericProperty(4)
     grid_power = NumericProperty(0)
+    grid_exporting = BooleanProperty(False)
     battery_level = NumericProperty(0.5)
     battery_state = StringProperty('Charging')
     car_battery_level = NumericProperty(0.5)
+    car_is_charging = BooleanProperty(False)
+    car_range = NumericProperty(0.5)
+    car_charge_rate_miles = NumericProperty(0.5)
+    car_charge_rate_pc = NumericProperty(0.5)
     eddi_power = NumericProperty(0.5)
     zappi_power = NumericProperty(0.5)
     solar_edge_load = NumericProperty(0.5)
@@ -113,7 +126,16 @@ class EnergyHubApp(App):
     def _refresh_car(self):
         with NoSSLVerification():
             vehicle = self.car_connection.vehicles[0]
-            self.car_battery_level = int(vehicle.get_status('EV_STATE_OF_CHARGE'))
+            status = vehicle.get_status()
+        # alerts = status['vehicleAlerts']
+        status = status['vehicleStatus']
+        ev_status = list_to_dict(status['evStatus'])
+        self.car_battery_level = int(ev_status['EV_STATE_OF_CHARGE'])
+        self.car_is_charging = ev_status['EV_CHARGING_STATUS'] == 'CHARGING'
+        car_range_in_km = float(ev_status['EV_RANGE_ON_BATTERY_KM'])
+        self.car_range = km_to_miles(car_range_in_km)
+        self.car_charge_rate_miles = km_to_miles(float(ev_status['EV_CHARGING_RATE_KM_PER_HOUR']))
+        self.car_charge_rate_pc = float(ev_status['EV_CHARGING_RATE_SOC_PER_HOUR'])
 
     def _refresh_solar_edge(self):
         power_flow_data = self.solar_edge_connection.get_power_flow()
@@ -123,6 +145,7 @@ class EnergyHubApp(App):
         self.solar_production = power_flow_data['PV']['currentPower']
         self.grid_power = power_flow_data['GRID']['currentPower']
         self.solar_edge_load = power_flow_data['LOAD']['currentPower']
+        self.grid_exporting = {'from': 'LOAD', 'to': 'Grid'} in power_flow_data['connections']
 
     def _get_battery_color(self):
         if self.battery_level > 80:
@@ -135,6 +158,14 @@ class EnergyHubApp(App):
     def _get_remaining_load(self):
         return self.solar_edge_load - (self.zappi_power + self.eddi_power + self.heat_pump_power)
 
+    def _get_car_charge_label(self):
+        return (f'{self.car_battery_level} %'
+                + (f' (+{self.car_charge_rate_pc} %/hr)' if self.car_is_charging else '')
+                + '\n'
+                + f'{self.car_range:.0f} mi'
+                + (f' (+{self.car_charge_rate_miles:.1f} mi/hr)' if self.car_is_charging else '')
+                )
+
     battery_color = AliasProperty(
         _get_battery_color,
         bind=['battery_level']
@@ -143,10 +174,18 @@ class EnergyHubApp(App):
         _get_remaining_load,
         bind=['solar_edge_load', 'zappi_power', 'eddi_power', 'heat_pump_power']
     )
+    car_charge_label = AliasProperty(
+        _get_car_charge_label,
+        bind=['car_battery_level', 'car_charge_rate_pc', 'car_is_charging',
+              'car_range', 'car_charge_rate_miles']
+    )
 
     @staticmethod
     def calculate_arrow_size(power):
-        return 10 + (30 * power / 5)
+        if power == 0:
+            return 0
+        else:
+            return 15 + (30 * power / 5)
 
 
 if __name__ == '__main__':
