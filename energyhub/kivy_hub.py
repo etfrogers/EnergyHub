@@ -10,6 +10,7 @@ file. The file test.kv is selected because the name of the subclass of App is
 TestApp, which implies that kivy should try to load "test.kv". That file
 contains a root Widget.
 '''
+import textwrap
 import time
 
 import jlrpy
@@ -60,6 +61,23 @@ def km_to_miles(km):
     return 0.621371 * km
 
 
+def popup_on_error(label: str):
+    def decorator(function):
+        def wrapper(*args, **kwargs):
+            try:
+                return function(*args, **kwargs)
+            except Exception as err:
+                _warning(label + ' API Error', textwrap.fill(str(err), 37))
+        return wrapper
+    return decorator
+
+
+def _warning(title: str, msg: str):
+    Popup(title=title,
+          content=Label(text=msg),
+          size_hint=(0.95, 0.3)).open()
+
+
 class EnergyHubApp(App):
     solar_production = NumericProperty(0)
     battery_production = NumericProperty(4)
@@ -77,6 +95,7 @@ class EnergyHubApp(App):
     solar_edge_load = NumericProperty(0.5)
     heating_power = NumericProperty(0)
     dhw_power = NumericProperty(0)
+    outside_temperature = NumericProperty(0)
 
     @property
     def small_size(self):
@@ -101,27 +120,12 @@ class EnergyHubApp(App):
                                                     config.data['ecoforest']['auth-key'])
 
     def refresh(self):
-        try:
-            self._refresh_solar_edge()
-        except Exception as err:
-            self._warning('SolarEdge API Error', str(err))
+        self._refresh_solar_edge()
+        self._refresh_car()
+        self._refresh_my_energi()
+        self._refresh_heat_pump()
 
-        try:
-            self._refresh_car()
-        except Exception as err:
-            self._warning('JLR API Error', str(err))
-
-        try:
-            self._refresh_my_energi()
-        except Exception as err:
-            self._warning('MyEnergy API Error', str(err))
-
-    @staticmethod
-    def _warning(title, msg):
-        Popup(title=title,
-              content=Label(text=msg),
-              size_hint=(0.8, 0.2)).open()
-
+    @popup_on_error('MyEnergy')
     def _refresh_my_energi(self):
         with NoSSLVerification():
             self.my_energi_connection.refresh()
@@ -143,6 +147,7 @@ class EnergyHubApp(App):
         if refresh_status != 'Successful':
             raise ConnectionError('Could not refresh JLR vehicle')
 
+    @popup_on_error('JLR')
     def _refresh_car(self):
         with NoSSLVerification():
             vehicle = self.car_connection.vehicles[0]
@@ -162,6 +167,7 @@ class EnergyHubApp(App):
         except ValueError:
             self.car_charge_rate_pc = -100
 
+    @popup_on_error('SolarEdge')
     def _refresh_solar_edge(self):
         power_flow_data = self.solar_edge_connection.get_power_flow()
         self.battery_production = power_flow_data['STORAGE']['currentPower']
@@ -172,9 +178,11 @@ class EnergyHubApp(App):
         self.solar_edge_load = power_flow_data['LOAD']['currentPower']
         self.grid_exporting = {'from': 'LOAD', 'to': 'Grid'} in power_flow_data['connections']
 
+    @popup_on_error('Ecoforest')
     def _refresh_heat_pump(self):
         status = self.ecoforest_connection.get_current_status()
-        self.heat_pump_power = status['ElectricalPower']
+        self.heat_pump_power = status['ElectricalPower']['value']
+        self.outside_temperature = status['OutsideTemp']['value']
         if status['DHWDemand']:
             self.dhw_power = self.heat_pump_power
             self.heating_power = 0
