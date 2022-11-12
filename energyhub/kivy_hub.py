@@ -12,11 +12,13 @@ contains a root Widget.
 '''
 import textwrap
 import time
+from threading import Thread
 
 import jlrpy
 from kivy.app import App
 from kivy.properties import NumericProperty, AliasProperty, StringProperty, BooleanProperty
 from kivy.utils import platform
+from kivy.clock import mainthread
 import ssl
 from contextlib import AbstractContextManager
 
@@ -120,15 +122,19 @@ class EnergyHubApp(App):
                                                     config.data['ecoforest']['auth-key'])
 
     def refresh(self):
-        self._refresh_solar_edge()
-        self._refresh_car()
-        self._refresh_my_energi()
-        self._refresh_heat_pump()
+        Thread(target=self._refresh_solar_edge).start()
+        Thread(target=self._refresh_car).start()
+        Thread(target=self._refresh_my_energi).start()
+        Thread(target=self._refresh_heat_pump).start()
 
     @popup_on_error('MyEnergy')
     def _refresh_my_energi(self):
         with NoSSLVerification():
             self.my_energi_connection.refresh()
+        self._update_my_energi_data()
+
+    @mainthread
+    def _update_my_energi_data(self):
         self.zappi_power = self.my_energi_connection.state.zappi_list()[0].charge_rate / 1000
         self.eddi_power = self.my_energi_connection.state.eddi_list()[0].charge_rate / 1000
         # TODO pstatus (connected)
@@ -153,7 +159,10 @@ class EnergyHubApp(App):
             vehicle = self.car_connection.vehicles[0]
             self._jlr_vehicle_server_refresh()
             status = vehicle.get_status()  # This should get status from JLR servers to us
+        self._update_car_status(status)
 
+    @mainthread
+    def _update_car_status(self, status):
         # alerts = status['vehicleAlerts']
         status = status['vehicleStatus']
         ev_status = list_to_dict(status['evStatus'])
@@ -170,6 +179,10 @@ class EnergyHubApp(App):
     @popup_on_error('SolarEdge')
     def _refresh_solar_edge(self):
         power_flow_data = self.solar_edge_connection.get_power_flow()
+        self._update_solar_edge_data(power_flow_data)
+
+    @mainthread
+    def _update_solar_edge_data(self, power_flow_data):
         self.battery_production = power_flow_data['STORAGE']['currentPower']
         self.battery_level = power_flow_data['STORAGE']['chargeLevel']
         self.battery_state = power_flow_data['STORAGE']['status']
@@ -181,6 +194,10 @@ class EnergyHubApp(App):
     @popup_on_error('Ecoforest')
     def _refresh_heat_pump(self):
         status = self.ecoforest_connection.get_current_status()
+        self._update_heat_pump_data(status)
+
+    @mainthread
+    def _update_heat_pump_data(self, status):
         self.heat_pump_power = status['ElectricalPower']['value']
         self.outside_temperature = status['OutsideTemp']['value']
         if status['DHWDemand']:
@@ -206,6 +223,9 @@ class EnergyHubApp(App):
         return self.solar_edge_load - (self.zappi_power + self.eddi_power
                                        + self.heating_power + self.dhw_power)
 
+    def _get_bottom_arms_power(self):
+        return self.zappi_power + self.eddi_power + self.dhw_power
+
     def _get_car_charge_label(self):
         return (f'{self.car_battery_level} %'
                 + (f' (+{self.car_charge_rate_pc if self.car_charge_rate_pc >= 0 else "?"} %/hr)'
@@ -227,6 +247,10 @@ class EnergyHubApp(App):
         _get_car_charge_label,
         bind=['car_battery_level', 'car_charge_rate_pc', 'car_is_charging',
               'car_range', 'car_charge_rate_miles']
+    )
+    _bottom_arms_power = AliasProperty(
+        _get_bottom_arms_power,
+        bind=['zappi_power', 'eddi_power', 'dhw_power']
     )
 
     @staticmethod

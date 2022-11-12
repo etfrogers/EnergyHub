@@ -172,13 +172,13 @@
         distance: self.parent.width * 0.2
         angle: 0
         power: app.remaining_load
-    Arrow:
+    PowerArrow:
         # from first branches to second branches
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.5
         distance: self.parent.height * 0.1
         angle: 270
-        head_size: 0
+        power: app._bottom_arms_power
     LabeledArrow:
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.4
