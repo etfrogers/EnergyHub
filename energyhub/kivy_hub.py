@@ -10,6 +10,8 @@ file. The file test.kv is selected because the name of the subclass of App is
 TestApp, which implies that kivy should try to load "test.kv". That file
 contains a root Widget.
 '''
+import time
+
 import jlrpy
 from kivy.app import App
 from kivy.properties import NumericProperty, AliasProperty, StringProperty, BooleanProperty
@@ -129,10 +131,24 @@ class EnergyHubApp(App):
         #   status (waiting for export)
         #   charge added
 
+    def _jlr_vehicle_server_refresh(self, timeout=10, retry_time=1):
+        vehicle = self.car_connection.vehicles[0]
+        response = vehicle.get_health_status()  # This should refresh status from the vehicle to JLR servers
+        refresh_status = 'Started'
+        elapsed_time = 0
+        while refresh_status == 'Started' and elapsed_time < timeout:
+            refresh_status = vehicle.get_service_status(response['customerServiceId'])['status']
+            time.sleep(retry_time)
+            elapsed_time += retry_time
+        if refresh_status != 'Successful':
+            raise ConnectionError('Could not refresh JLR vehicle')
+
     def _refresh_car(self):
         with NoSSLVerification():
             vehicle = self.car_connection.vehicles[0]
-            status = vehicle.get_status()
+            self._jlr_vehicle_server_refresh()
+            status = vehicle.get_status()  # This should get status from JLR servers to us
+
         # alerts = status['vehicleAlerts']
         status = status['vehicleStatus']
         ev_status = list_to_dict(status['evStatus'])
@@ -141,7 +157,10 @@ class EnergyHubApp(App):
         car_range_in_km = float(ev_status['EV_RANGE_ON_BATTERY_KM'])
         self.car_range = km_to_miles(car_range_in_km)
         self.car_charge_rate_miles = km_to_miles(float(ev_status['EV_CHARGING_RATE_KM_PER_HOUR']))
-        self.car_charge_rate_pc = float(ev_status['EV_CHARGING_RATE_SOC_PER_HOUR'])
+        try:
+            self.car_charge_rate_pc = float(ev_status['EV_CHARGING_RATE_SOC_PER_HOUR'])
+        except ValueError:
+            self.car_charge_rate_pc = -100
 
     def _refresh_solar_edge(self):
         power_flow_data = self.solar_edge_connection.get_power_flow()
@@ -181,7 +200,8 @@ class EnergyHubApp(App):
 
     def _get_car_charge_label(self):
         return (f'{self.car_battery_level} %'
-                + (f' (+{self.car_charge_rate_pc} %/hr)' if self.car_is_charging else '')
+                + (f' (+{self.car_charge_rate_pc if self.car_charge_rate_pc >= 0 else "?"} %/hr)'
+                   if self.car_is_charging else '')
                 + '\n'
                 + f'{self.car_range:.0f} mi'
                 + (f' (+{self.car_charge_rate_miles:.1f} mi/hr)' if self.car_is_charging else '')
