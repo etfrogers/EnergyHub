@@ -258,7 +258,10 @@ class EnergyHubApp(App):
         if power == 0:
             return 0
         else:
-            return 15 + (30 * power / 5)
+            size = (15 + (30 * power / 5))
+            if platform == 'android':
+                size = (25 + (70 * power / 5))
+            return size
 
 
 if __name__ == '__main__':
