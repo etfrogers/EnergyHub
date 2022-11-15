@@ -80,12 +80,11 @@
             rectangle: (self.x+self.width*0.4, self.y+self.height*.95, self.width*0.2, self.height * .05)
 
 
-<CurrentStatus@FloatLayout>:
+<CurrentStatus@RelativeLayout>:
     canvas.before:
         Color:
             rgb: 1, 1, 1
         Rectangle:
-            pos: self.pos
             size: self.size
     IconButton:
         source: 'energyhub/resources/icons8-reset-48.png'
@@ -229,5 +228,49 @@
         pos_hint: {'y': 0.12, 'x': 0.45}
         size_hint: (0.1, 0.05)
 
+<TabbedPanelStrip>
+    canvas:
+        Color:
+            rgba: (1, 1, 1, 1)
+        Rectangle:
+            size: self.size
+            pos: self.pos
 
-CurrentStatus
+<EHPanel@TabbedPanelHeader>
+    background_color: (1, 1, 1, 0)
+    image_label: ''
+    RelativeLayout:
+        pos: root.pos
+        size: root.size
+        Image:
+            source: f'energyhub/resources/{root.image_label}_black.png' if root.state == 'normal' else f'energyhub/resources/{root.image_label}_red.png'
+        # red color 238, 0, 64
+
+<MainTabs@TabbedPanel>:
+    background_color: (1, 1, 1, 1)
+    tab_pos: 'bottom_mid'
+    do_default_tab: False
+    BoxLayout:
+        id: history
+        orientation: 'vertical'
+        Label:
+            text: 'First graph'
+        Label:
+            text: 'Second graph'
+    Label:
+        id: planning
+        text: 'Some planning capability'
+    CurrentStatus:
+        id: current_status
+    EHPanel:
+        content: current_status.__self__
+        image_label: 'three_way'
+    EHPanel:
+        content: history.__self__
+        image_label: 'history'
+    EHPanel:
+        content: planning.__self__
+        image_label: 'planning'
+
+MainTabs
+#CurrentStatus
