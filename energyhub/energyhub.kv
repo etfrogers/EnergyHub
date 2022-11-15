@@ -8,6 +8,7 @@
 <BlackLabel@Label>
     color: (0, 0, 0, 1)
 
+
 <PowerLabel@BlackLabel>
     val: 0
     unit: 'kW'
@@ -19,9 +20,11 @@
     markup: True
     halign: 'center'
 
+
 <PercentLabel@PowerLabel>
     unit: '%'
     dp: 0
+
 
 <Arrow>
     head_angle: 60
@@ -31,11 +34,13 @@
     arrow_at_midpoint: True
     shaft_width: cm(0.03)
 
+
 <PowerArrow@Arrow>
     power: 0
     active_color: neutral
-    head_size: app.calculate_arrow_size(root.power)
-    main_color: inactive if root.power == 0 else root.active_color
+    head_size: app.calculate_arrow_size(self.power)
+    main_color: inactive if self.power == 0 else self.active_color
+
 
 <LabeledArrow@PowerArrow>
     vertical: self.angle not in (0, 180)
@@ -43,7 +48,6 @@
         orientation: 'horizontal' if root.vertical else 'vertical'
         pos: (min(root.o_x, root.to_x), min(root.o_y, root.to_y))
         size: (root.parent.width*0.15, root.distance) if root.vertical else (root.distance, root.parent.height*0.05)
-
         PowerLabel:
             canvas:
                 Color:
@@ -55,6 +59,8 @@
             pos: (0, 0)
             halign: 'center'
             vertical: root.vertical
+
+
 <Battery@Widget>
     canvas:
         Color:
@@ -91,7 +97,7 @@
         allow_stretch: False
         pos_hint: {'x': 0.5 - ((self.width/self.parent.width) / 2), 'y': 0.88}
     PowerArrow:
-        active_color: (0, 0.8, 0, 1)
+        active_color: eco
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.9
         distance: self.parent.height * 0.1
@@ -103,7 +109,7 @@
         size_hint: (0.1, 0.1)
     LabeledArrow:
         power: app.battery_production
-        active_color: eco
+        active_color: eco if app.solar_production > 0 else non_eco
         o_x: self.parent.width * 0.3
         o_y: self.parent.height * 0.8
         distance: self.parent.width * 0.2
@@ -129,6 +135,7 @@
         distance: self.parent.width * 0.2
         angle: 180
     LabeledArrow:
+        active_color: app.load_color
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.8
         distance: self.parent.height * 0.1
@@ -145,6 +152,7 @@
         pos_hint: {'x': 0.001, 'y': 0.34}
 
     PowerArrow:
+        active_color: app.load_color
         # from House to first branches
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.6
@@ -157,6 +165,7 @@
         pos_hint: {'x': 0.05, 'y': 0.3}
     LabeledArrow:
         # first left branch
+        active_color: app.load_color
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.5
         distance: self.parent.width * 0.2
@@ -168,6 +177,7 @@
         pos_hint: {'x': 0.75, 'y': 0.42}
     LabeledArrow:
         # first right branch
+        active_color: app.load_color
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.5
         distance: self.parent.width * 0.2
@@ -175,18 +185,21 @@
         power: app.remaining_load
     PowerArrow:
         # from first branches to second branches
+        active_color: app.load_color
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.5
         distance: self.parent.height * 0.1
         angle: 270
         power: app._bottom_arms_power
     LabeledArrow:
+        active_color: app.load_color
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.4
         distance: self.parent.width * 0.2
         angle: 180
         power: app.dhw_power
     LabeledArrow:
+        active_color: app.load_color
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.4
         distance: self.parent.width * 0.2
@@ -198,6 +211,7 @@
         pos_hint: {'x': 0.75, 'y': 0.3}
     LabeledArrow:
         # to car load
+        active_color: app.load_color
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.4
         distance: self.parent.height * 0.1

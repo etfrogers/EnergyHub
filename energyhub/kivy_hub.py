@@ -103,6 +103,18 @@ class EnergyHubApp(App):
     def small_size(self):
         return 25 if platform == 'android' else 15
 
+    def _get_load_color(self):
+        using_grid = self.grid_power > 0 and not self.grid_exporting
+        generating_solar = self.solar_production > 0
+        using_battery = self.battery_production > 0 and self.battery_state != 'Charging'
+        eco_generation = generating_solar or using_battery
+        if eco_generation and not using_grid:
+            return 0, 0.8, 0, 1
+        elif eco_generation:
+            return 0.8, 0.8, 0, 1
+        else:
+            return 1, 0.5, 0, 1
+
     def __init__(self):
         super(EnergyHubApp, self).__init__()
 
@@ -251,6 +263,10 @@ class EnergyHubApp(App):
     _bottom_arms_power = AliasProperty(
         _get_bottom_arms_power,
         bind=['zappi_power', 'eddi_power', 'dhw_power']
+    )
+    load_color = AliasProperty(
+        _get_load_color,
+        bind=['solar_production', 'grid_exporting', 'grid_power', 'battery_production', 'battery_state']
     )
 
     @staticmethod
