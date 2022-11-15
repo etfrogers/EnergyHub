@@ -16,7 +16,7 @@ from threading import Thread
 
 import jlrpy
 from kivy.app import App
-from kivy.properties import NumericProperty, AliasProperty, StringProperty, BooleanProperty
+from kivy.properties import NumericProperty, AliasProperty, StringProperty, BooleanProperty, DictProperty
 from kivy.utils import platform
 from kivy.clock import mainthread
 import ssl
@@ -98,6 +98,7 @@ class EnergyHubApp(App):
     heating_power = NumericProperty(0)
     dhw_power = NumericProperty(0)
     outside_temperature = NumericProperty(0)
+    stale_sources = DictProperty({'car': True, 'myenergi': True, 'heatpump': True, 'solaredge': True})
 
     @property
     def small_size(self):
@@ -134,12 +135,13 @@ class EnergyHubApp(App):
                                                     config.data['ecoforest']['auth-key'])
 
     def refresh(self):
+        self.stale_sources = {key: True for key in self.stale_sources}
         Thread(target=self._refresh_solar_edge).start()
         Thread(target=self._refresh_car).start()
         Thread(target=self._refresh_my_energi).start()
         Thread(target=self._refresh_heat_pump).start()
 
-    @popup_on_error('MyEnergy')
+    @popup_on_error('MyEnergi')
     def _refresh_my_energi(self):
         with NoSSLVerification():
             self.my_energi_connection.refresh()
@@ -149,6 +151,7 @@ class EnergyHubApp(App):
     def _update_my_energi_data(self):
         self.zappi_power = self.my_energi_connection.state.zappi_list()[0].charge_rate
         self.eddi_power = self.my_energi_connection.state.eddi_list()[0].charge_rate
+        self.stale_sources['myenergi'] = False
         # TODO pstatus (connected)
         #   status (waiting for export)
         #   charge added
@@ -187,6 +190,7 @@ class EnergyHubApp(App):
             self.car_charge_rate_pc = float(ev_status['EV_CHARGING_RATE_SOC_PER_HOUR'])
         except ValueError:
             self.car_charge_rate_pc = -100
+        self.stale_sources['car'] = False
 
     @popup_on_error('SolarEdge')
     def _refresh_solar_edge(self):
@@ -206,6 +210,7 @@ class EnergyHubApp(App):
         self.grid_power = power_flow_data['GRID']['currentPower'] * conversion_factor
         self.solar_edge_load = power_flow_data['LOAD']['currentPower'] * conversion_factor
         self.grid_exporting = {'from': 'LOAD', 'to': 'Grid'} in power_flow_data['connections']
+        self.stale_sources['solaredge'] = False
 
     @popup_on_error('Ecoforest')
     def _refresh_heat_pump(self):
@@ -226,6 +231,7 @@ class EnergyHubApp(App):
             assert self.heat_pump_power == 0
             self.heating_power = 0
             self.dhw_power = 0
+        self.stale_sources['heatpump'] = False
 
     def _get_battery_color(self):
         if self.battery_level > 80:
