@@ -216,10 +216,10 @@ class EnergyHubApp(App):
     def _update_heat_pump_data(self, status):
         self.heat_pump_power = status['ElectricalPower']['value']
         self.outside_temperature = status['OutsideTemp']['value']
-        if status['DHWDemand']:
+        if status['DHWDemand']['value']:
             self.dhw_power = self.heat_pump_power
             self.heating_power = 0
-        elif status['HeatingDemand']:
+        elif status['HeatingDemand']['value']:
             self.heating_power = self.heat_pump_power
             self.dhw_power = 0
         else:
