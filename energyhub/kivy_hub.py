@@ -69,14 +69,15 @@ def popup_on_error(label: str):
             try:
                 return function(*args, **kwargs)
             except Exception as err:
-                _warning(label + ' API Error', textwrap.fill(str(err), 37))
+                _warning(label + ' API Error', str(err))
+                return None
         return wrapper
     return decorator
 
 
 def _warning(title: str, msg: str):
     Popup(title=title,
-          content=Label(text=msg),
+          content=Label(text=textwrap.fill(msg, 37)),
           size_hint=(0.95, 0.3)).open()
 
 
@@ -119,20 +120,44 @@ class EnergyHubApp(App):
     def __init__(self):
         super(EnergyHubApp, self).__init__()
 
+        self.car_connection = self._connect_car()
+        self.my_energi_connection = self._connect_my_energi()
+
+        self.solar_edge_connection = self._connect_solar_edge()
+        self.ecoforest_connection = self._connect_ecoforest()
+        self.refresh()
+
+    @staticmethod
+    @popup_on_error('Error initialising JLR')
+    def _connect_car():
         with NoSSLVerification():
-            self.car_connection = jlrpy.Connection(config.data['jlr']['username'],
-                                                   config.data['jlr']['password'])
-            self.car_connection.refresh_tokens()
+            conn = jlrpy.Connection(config.data['jlr']['username'],
+                                    config.data['jlr']['password'])
+            conn.refresh_tokens()
+        return conn
 
-        self.my_energi_connection = MyEnergiHost(config.data['myenergi']['username'],
-                                                 config.data['myenergi']['api-key'])
+    @staticmethod
+    @popup_on_error('Error initialising MyEnergi')
+    def _connect_my_energi():
+        return MyEnergiHost(config.data['myenergi']['username'],
+                            config.data['myenergi']['api-key'])
 
-        self.solar_edge_connection = SolarEdgeClient(config.data['solar-edge']['api-key'],
-                                                     config.data['solar-edge']['site-id'])
-        self.ecoforest_connection = EcoforestClient(config.data['ecoforest']['server'],
-                                                    config.data['ecoforest']['port'],
-                                                    config.data['ecoforest']['serial-number'],
-                                                    config.data['ecoforest']['auth-key'])
+    @staticmethod
+    @popup_on_error('Error initialising SolarEdge')
+    def _connect_solar_edge():
+        return SolarEdgeClient(config.data['solar-edge']['api-key'],
+                               config.data['solar-edge']['site-id'])
+
+    @staticmethod
+    @popup_on_error('Error initialising Ecoforest')
+    def _connect_ecoforest():
+        return EcoforestClient(config.data['ecoforest']['server'],
+                               config.data['ecoforest']['port'],
+                               config.data['ecoforest']['serial-number'],
+                               config.data['ecoforest']['auth-key'])
+
+    def on_pause(self):
+        return True
 
     def refresh(self):
         self.stale_sources = {key: True for key in self.stale_sources}
@@ -143,6 +168,8 @@ class EnergyHubApp(App):
 
     @popup_on_error('MyEnergi')
     def _refresh_my_energi(self):
+        if not self.my_energi_connection:
+            self.my_energi_connection = self._connect_my_energi()
         with NoSSLVerification():
             self.my_energi_connection.refresh()
         self._update_my_energi_data()
@@ -170,6 +197,8 @@ class EnergyHubApp(App):
 
     @popup_on_error('JLR')
     def _refresh_car(self):
+        if not self.car_connection:
+            self.car_connection = self._connect_car()
         with NoSSLVerification():
             vehicle = self.car_connection.vehicles[0]
             self._jlr_vehicle_server_refresh()
@@ -194,6 +223,8 @@ class EnergyHubApp(App):
 
     @popup_on_error('SolarEdge')
     def _refresh_solar_edge(self):
+        if not self.solar_edge_connection:
+            self.solar_edge_connection = self._connect_solar_edge()
         power_flow_data = self.solar_edge_connection.get_power_flow()
         self._update_solar_edge_data(power_flow_data)
 
@@ -214,6 +245,8 @@ class EnergyHubApp(App):
 
     @popup_on_error('Ecoforest')
     def _refresh_heat_pump(self):
+        if not self.ecoforest_connection:
+            self.ecoforest_connection = self._connect_ecoforest()
         status = self.ecoforest_connection.get_current_status()
         self._update_heat_pump_data(status)
 
