@@ -147,8 +147,8 @@ class EnergyHubApp(App):
 
     @mainthread
     def _update_my_energi_data(self):
-        self.zappi_power = self.my_energi_connection.state.zappi_list()[0].charge_rate / 1000
-        self.eddi_power = self.my_energi_connection.state.eddi_list()[0].charge_rate / 1000
+        self.zappi_power = self.my_energi_connection.state.zappi_list()[0].charge_rate
+        self.eddi_power = self.my_energi_connection.state.eddi_list()[0].charge_rate
         # TODO pstatus (connected)
         #   status (waiting for export)
         #   charge added
@@ -195,12 +195,16 @@ class EnergyHubApp(App):
 
     @mainthread
     def _update_solar_edge_data(self, power_flow_data):
-        self.battery_production = power_flow_data['STORAGE']['currentPower']
+        if power_flow_data['unit'] == 'kW':
+            conversion_factor = 1000
+        else:
+            raise NotImplementedError
+        self.battery_production = power_flow_data['STORAGE']['currentPower'] * conversion_factor
         self.battery_level = power_flow_data['STORAGE']['chargeLevel']
         self.battery_state = power_flow_data['STORAGE']['status']
-        self.solar_production = power_flow_data['PV']['currentPower']
-        self.grid_power = power_flow_data['GRID']['currentPower']
-        self.solar_edge_load = power_flow_data['LOAD']['currentPower']
+        self.solar_production = power_flow_data['PV']['currentPower'] * conversion_factor
+        self.grid_power = power_flow_data['GRID']['currentPower'] * conversion_factor
+        self.solar_edge_load = power_flow_data['LOAD']['currentPower'] * conversion_factor
         self.grid_exporting = {'from': 'LOAD', 'to': 'Grid'} in power_flow_data['connections']
 
     @popup_on_error('Ecoforest')
@@ -274,9 +278,9 @@ class EnergyHubApp(App):
         if power == 0:
             return 0
         else:
-            size = (15 + (30 * power / 5))
+            size = (15 + (30 * power / 5000))
             if platform == 'android':
-                size = (25 + (70 * power / 5))
+                size = (25 + (70 * power / 5000))
             return size
 
 

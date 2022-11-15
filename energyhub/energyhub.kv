@@ -12,8 +12,9 @@
 <PowerLabel@BlackLabel>
     val: 0
     unit: 'kW'
+    conversion_factor: 1/1000
     unit_label: ('\n' if self.vertical else ' ' ) + f'[size={app.small_size}]{self.unit}[/size]'
-    str_val: '%.*f' % (self.dp, self.val)
+    str_val: '%.*f' % (self.dp, self.val*self.conversion_factor)
     text: f'{self.str_val}{self.unit_label}'
     dp: 2
     vertical: False
@@ -23,6 +24,7 @@
 
 <PercentLabel@PowerLabel>
     unit: '%'
+    conversion_factor: 1
     dp: 0
 
 
