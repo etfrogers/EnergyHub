@@ -1,6 +1,7 @@
 #:kivy 1.0
 
 #:include energyhub/current_status.kv
+#:include energyhub/history.kv
 
 <TabbedPanelStrip>
     canvas:
@@ -24,13 +25,8 @@
     background_color: (1, 1, 1, 1)
     tab_pos: 'bottom_mid'
     do_default_tab: False
-    BoxLayout:
+    HistoryPanel:
         id: history
-        orientation: 'vertical'
-        Label:
-            text: 'First graph'
-        Label:
-            text: 'Second graph'
     Label:
         id: planning
         text: 'Some planning capability'
@@ -42,6 +38,7 @@
     EHPanel:
         content: history.__self__
         image_label: 'history'
+        on_state: app.build_history_graphs
     EHPanel:
         content: planning.__self__
         image_label: 'planning'

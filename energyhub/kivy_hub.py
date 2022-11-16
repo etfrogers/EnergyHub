@@ -1,15 +1,4 @@
-'''
-Application built from a  .kv file
-==================================
-
-This shows how to implicitly use a .kv file for your application. You
-should see a full screen button labelled "Hello from test.kv".
-
-After Kivy instantiates a subclass of App, it implicitly searches for a .kv
-file. The file test.kv is selected because the name of the subclass of App is
-TestApp, which implies that kivy should try to load "test.kv". That file
-contains a root Widget.
-'''
+import datetime
 import textwrap
 import time
 from threading import Thread
@@ -26,6 +15,12 @@ from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.image import Image
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
+from matplotlib import pyplot as plt
+
+# importing numpy
+import numpy as np
+from kivy.garden.matplotlib import FigureCanvasKivyAgg
+from urllib3.exceptions import NewConnectionError
 
 from ecoforest.ecoforest_processor import EcoforestClient
 from solaredge.solar_edge_api import SolarEdgeClient
@@ -75,6 +70,7 @@ def popup_on_error(label: str):
     return decorator
 
 
+@mainthread
 def _warning(title: str, msg: str):
     Popup(title=title,
           content=Label(text=textwrap.fill(msg, 37)),
@@ -117,9 +113,15 @@ class EnergyHubApp(App):
         else:
             return 1, 0.5, 0, 1
 
-    def __init__(self):
-        super(EnergyHubApp, self).__init__()
+    def __init__(self, *args, **kwargs):
+        super(EnergyHubApp, self).__init__(*args, **kwargs)
+        self.car_connection = None
+        self.my_energi_connection = None
+        self.solar_edge_connection = None
+        self.ecoforest_connection = None
 
+    def build(self):
+        super(EnergyHubApp, self).build()
         self.car_connection = self._connect_car()
         self.my_energi_connection = self._connect_my_energi()
 
@@ -165,6 +167,7 @@ class EnergyHubApp(App):
         Thread(target=self._refresh_car).start()
         Thread(target=self._refresh_my_energi).start()
         Thread(target=self._refresh_heat_pump).start()
+        self.build_history_graphs(None, None)
 
     @popup_on_error('MyEnergi')
     def _refresh_my_energi(self):
@@ -261,7 +264,8 @@ class EnergyHubApp(App):
             self.heating_power = self.heat_pump_power
             self.dhw_power = 0
         else:
-            assert self.heat_pump_power == 0
+            print(status)
+            # assert self.heat_pump_power == 0
             self.heating_power = 0
             self.dhw_power = 0
         self.stale_sources['heatpump'] = False
@@ -321,6 +325,24 @@ class EnergyHubApp(App):
             if platform == 'android':
                 size = (25 + (70 * power / 5000))
             return size
+
+    @popup_on_error('History')
+    def build_history_graphs(self, widget, value):
+        history_panel = self.root.ids.history
+        date = history_panel.ids.history_date.date
+        data = self.solar_edge_connection.get_power_history_for_day(date)
+        times = data['timestamps']
+        production_power = data['Production']
+
+        midnight = datetime.datetime.combine(date, datetime.time(0))
+        hours = np.array([(t-midnight).total_seconds()/(60*60) for t in times])
+        # this will plot the signal on graph
+        plt.plot(hours, production_power/1000)
+        plt.xticks([0, 6, 12, 18, 24])
+        plt.ylabel('Power (kW)')
+
+        # adding plot to kivy boxlayout
+        history_panel.add_widget(FigureCanvasKivyAgg(plt.gcf()))
 
 
 if __name__ == '__main__':
