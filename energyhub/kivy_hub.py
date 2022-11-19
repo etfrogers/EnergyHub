@@ -333,11 +333,16 @@ class EnergyHubApp(App):
         data = self.solar_edge_connection.get_power_history_for_day(date)
         times = data['timestamps']
         production_power = data['Production']
+        load_power = data['Consumption']
+        export_power = data['FeedIn']
+        import_power = data['Purchased']
 
         midnight = datetime.datetime.combine(date, datetime.time(0))
         hours = np.array([(t-midnight).total_seconds()/(60*60) for t in times])
-        # this will plot the signal on graph
         plt.plot(hours, production_power/1000)
+        plt.plot(hours, load_power/1000)
+        plt.plot(hours, export_power/1000)
+        plt.plot(hours, import_power/1000)
         plt.xticks([0, 6, 12, 18, 24])
         plt.ylabel('Power (kW)')
 
