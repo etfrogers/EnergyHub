@@ -2,6 +2,7 @@ import datetime
 import textwrap
 import time
 from threading import Thread
+from typing import Optional
 
 import jlrpy
 from kivy.app import App
@@ -115,23 +116,22 @@ class EnergyHubApp(App):
 
     def __init__(self, *args, **kwargs):
         super(EnergyHubApp, self).__init__(*args, **kwargs)
-        self.car_connection = None
-        self.my_energi_connection = None
-        self.solar_edge_connection = None
-        self.ecoforest_connection = None
+        self.car_connection: Optional[jlrpy.Connection] = None
+        self.my_energi_connection: Optional[MyEnergiHost] = None
+        self.solar_edge_connection: Optional[SolarEdgeClient] = None
+        self.ecoforest_connection: Optional[EcoforestClient] = None
 
     def build(self):
         super(EnergyHubApp, self).build()
         self.car_connection = self._connect_car()
         self.my_energi_connection = self._connect_my_energi()
-
         self.solar_edge_connection = self._connect_solar_edge()
         self.ecoforest_connection = self._connect_ecoforest()
         self.refresh()
 
     @staticmethod
     @popup_on_error('Error initialising JLR')
-    def _connect_car():
+    def _connect_car() -> jlrpy.Connection:
         with NoSSLVerification():
             conn = jlrpy.Connection(config.data['jlr']['username'],
                                     config.data['jlr']['password'])
@@ -140,19 +140,19 @@ class EnergyHubApp(App):
 
     @staticmethod
     @popup_on_error('Error initialising MyEnergi')
-    def _connect_my_energi():
+    def _connect_my_energi() -> MyEnergiHost:
         return MyEnergiHost(config.data['myenergi']['username'],
                             config.data['myenergi']['api-key'])
 
     @staticmethod
     @popup_on_error('Error initialising SolarEdge')
-    def _connect_solar_edge():
+    def _connect_solar_edge() -> SolarEdgeClient:
         return SolarEdgeClient(config.data['solar-edge']['api-key'],
                                config.data['solar-edge']['site-id'])
 
     @staticmethod
     @popup_on_error('Error initialising Ecoforest')
-    def _connect_ecoforest():
+    def _connect_ecoforest() -> EcoforestClient:
         return EcoforestClient(config.data['ecoforest']['server'],
                                config.data['ecoforest']['port'],
                                config.data['ecoforest']['serial-number'],
@@ -179,8 +179,8 @@ class EnergyHubApp(App):
 
     @mainthread
     def _update_my_energi_data(self):
-        self.zappi_power = self.my_energi_connection.state.zappi_list()[0].charge_rate
-        self.eddi_power = self.my_energi_connection.state.eddi_list()[0].charge_rate
+        self.zappi_power = self.zappi.charge_rate
+        self.eddi_power = self.eddi.charge_rate
         self.stale_sources['myenergi'] = False
         # TODO pstatus (connected)
         #   status (waiting for export)
@@ -343,6 +343,14 @@ class EnergyHubApp(App):
 
         # adding plot to kivy boxlayout
         history_panel.add_widget(FigureCanvasKivyAgg(plt.gcf()))
+
+    @property
+    def zappi(self):
+        return self.my_energi_connection.state.zappi_list()[0]
+
+    @property
+    def eddi(self):
+        return self.my_energi_connection.state.eddi_list()[0]
 
 
 if __name__ == '__main__':
