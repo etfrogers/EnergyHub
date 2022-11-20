@@ -262,8 +262,8 @@ class EnergyHubApp(App):
             self.heating_power = self.heat_pump_power
             self.dhw_power = 0
         else:
-            print(status)
-            # assert self.heat_pump_power == 0
+            if self.heat_pump_power != 0:
+                raise ValueError('Unknown heat pump demand signal')
             self.heating_power = 0
             self.dhw_power = 0
         self.stale_sources['heatpump'] = False
