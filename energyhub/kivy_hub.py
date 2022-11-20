@@ -2,7 +2,7 @@ import datetime
 import textwrap
 import time
 from threading import Thread
-from typing import Optional
+from typing import Optional, List, Dict, Sequence
 
 import jlrpy
 from kivy.app import App
@@ -167,7 +167,7 @@ class EnergyHubApp(App):
         Thread(target=self._refresh_car).start()
         Thread(target=self._refresh_my_energi).start()
         Thread(target=self._refresh_heat_pump).start()
-        self.build_history_graphs(None, None)
+        self.build_history_graphs()
 
     @popup_on_error('MyEnergi')
     def _refresh_my_energi(self):
@@ -327,9 +327,13 @@ class EnergyHubApp(App):
             return size
 
     @popup_on_error('History')
-    def build_history_graphs(self, widget, value):
+    def build_history_graphs(self, date=None):
         history_panel = self.root.ids.history
-        date = history_panel.ids.history_date.date
+        date_picker = history_panel.ids.history_date
+        history_panel.clear_widgets()
+        history_panel.add_widget(date_picker)
+        if date is None:
+            date = date_picker.date
         data = self.solar_edge_connection.get_power_history_for_day(date)
         times = data['timestamps']
         production_power = data['Production']
@@ -337,8 +341,21 @@ class EnergyHubApp(App):
         export_power = data['FeedIn']
         import_power = data['Purchased']
 
-        midnight = datetime.datetime.combine(date, datetime.time(0))
-        hours = np.array([(t-midnight).total_seconds()/(60*60) for t in times])
+        try:
+            zappi_serial = self.zappi.sno
+            eddi_serial = self.eddi.sno
+        except TypeError:
+            time.sleep(1)
+            zappi_serial = self.zappi.sno
+            eddi_serial = self.eddi.sno
+
+        zappi_data = self.my_energi_connection.get_minute_data(zappi_serial, date.timetuple())
+        eddi_data = self.my_energi_connection.get_minute_data(eddi_serial, date.timetuple())
+        zappi_timestamps, zappi_powers = zappi_dict_to_arrays(zappi_data)
+        eddi_timestamps, eddi_powers = zappi_dict_to_arrays(eddi_data)
+
+        hours = timestamps_to_hours(times)
+        fig = plt.figure()
         plt.plot(hours, production_power/1000)
         plt.plot(hours, load_power/1000)
         plt.plot(hours, export_power/1000)
@@ -347,7 +364,17 @@ class EnergyHubApp(App):
         plt.ylabel('Power (kW)')
 
         # adding plot to kivy boxlayout
-        history_panel.add_widget(FigureCanvasKivyAgg(plt.gcf()))
+        history_panel.add_widget(FigureCanvasKivyAgg(fig))
+
+        fig = plt.figure()
+        plt.plot(timestamps_to_hours(zappi_timestamps), np.array([p/1000 for p in zappi_powers.values()]).T)
+        plt.xticks([0, 6, 12, 18, 24])
+        history_panel.add_widget(FigureCanvasKivyAgg(fig))
+
+        fig = plt.figure()
+        plt.plot(timestamps_to_hours(eddi_timestamps), np.array([p/1000 for p in eddi_powers.values()]).T)
+        plt.xticks([0, 6, 12, 18, 24])
+        history_panel.add_widget(FigureCanvasKivyAgg(fig))
 
     @property
     def zappi(self):
@@ -356,6 +383,54 @@ class EnergyHubApp(App):
     @property
     def eddi(self):
         return self.my_energi_connection.state.eddi_list()[0]
+
+
+def timestamps_to_hours(times: Sequence[datetime.datetime]):
+    date = times[0].date()
+    midnight = datetime.datetime.combine(date, datetime.time(0))
+    return np.array([(t - midnight).total_seconds() / (60 * 60) for t in times])
+
+
+def zappi_dict_to_arrays(zappi_data: List[Dict]):
+    timestamps = []
+    import_power = []
+    export_power = []
+    charge_diverted = []
+    charge_imported = []
+    volts = []
+    for datapoint in zappi_data:
+        # entries with zero value are omitted from data
+        timestamp = datetime.datetime(year=datapoint['yr'],
+                                      month=datapoint['mon'],
+                                      day=datapoint['dom'],
+                                      hour=datapoint.get('hr', 0),  # hr may not be present
+                                      minute=datapoint.get('min', 0),  # min may not be present
+                                      )
+        timestamps.append(timestamp)
+        import_power.append(datapoint.get('imp', 0))
+        export_power.append(datapoint.get('exp', 0))
+        charge_diverted.append(datapoint.get('h1d', 0))
+        charge_imported.append(datapoint.get('h1b', 0))
+        volts.append(datapoint['v1'])
+    timestamps = np.array(timestamps)
+    import_power = np.array(import_power, dtype=float)
+    export_power = np.array(export_power, dtype=float)
+    charge_imported = np.array(charge_imported, dtype=float)
+    charge_diverted = np.array(charge_diverted, dtype=float)
+    volts = np.array(volts)/10
+    to_watts = 4/volts
+    import_power *= to_watts
+    export_power *= to_watts
+    charge_imported *= to_watts
+    charge_diverted *= to_watts
+    charging_power = charge_imported + charge_diverted
+    powers = {'import': import_power,
+              'export': export_power,
+              'charge_diverted': charge_diverted,
+              'charge_imported': charge_imported,
+              'charging_power': charging_power,
+              }
+    return timestamps, powers
 
 
 if __name__ == '__main__':
