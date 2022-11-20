@@ -7,8 +7,8 @@
 #:set neutral (0, 0, 0, 1)
 
 <EHLabel@Label>
-    data_source: ''
-    color: non_eco if self.data_source not in app.stale_sources else inactive if app.stale_sources[self.data_source] else neutral
+    is_stale: None
+    color: non_eco if self.is_stale is None else inactive if self.is_stale else neutral
 
 
 <PowerLabel@EHLabel>
@@ -48,7 +48,7 @@
 
 <LabeledArrow@PowerArrow>
     vertical: self.angle not in (0, 180)
-    data_source: ''
+    is_stale: None
     RelativeLayout:
         orientation: 'horizontal' if root.vertical else 'vertical'
         pos: (min(root.o_x, root.to_x), min(root.o_y, root.to_y))
@@ -64,16 +64,18 @@
             pos: (0, 0)
             halign: 'center'
             vertical: root.vertical
-            data_source: root.data_source
+            is_stale: root.is_stale
 
 
 <Battery@Widget>
+    level: 0
+    color: 0, 0, 0, 1
     canvas:
         Color:
-            rgba: app.battery_color
+            rgba: self.color
         Rectangle:
             pos: (self.x, self.y)
-            size: (self.width, self.height * 0.95 * app.battery_level/100)
+            size: (self.width, self.height * 0.95 * self.level/100)
         Color:
             rgb: 0, 0, 0
         Line:
@@ -107,27 +109,29 @@
         o_y: self.parent.height * 0.9
         distance: self.parent.height * 0.1
         angle: 270
-        power: app.solar_production
+        power: app.solar_model.solar_production
     PowerLabel:
-        val: app.solar_production
-        data_source: 'solaredge'
+        val: app.solar_model.solar_production
+        is_stale: app.solar_model.stale
         pos_hint: {'y': 0.925, 'x': 0.45}
         size_hint: (0.1, 0.1)
     LabeledArrow:
-        data_source: 'solaredge'
-        power: app.battery_production
-        active_color: eco if app.solar_production > 0 else non_eco
+        is_stale: app.solar_model.stale
+        power: app.solar_model.battery_production
+        active_color: eco if app.solar_model.solar_production > 0 else non_eco
         o_x: self.parent.width * 0.3
         o_y: self.parent.height * 0.8
         distance: self.parent.width * 0.2
         angle: 0
-        reverse_arrow: app.battery_state == 'Charging'
+        reverse_arrow: app.solar_model.battery_state == 'Charging'
     Battery:
+        color: app.solar_model.battery_color
+        level: app.solar_model.battery_level
         size_hint: (0.122, 0.1)
         pos_hint: {'x': 0.16 - ((self.width/self.parent.width) / 2), 'y': 0.75}
     PercentLabel:
-        data_source: 'solaredge'
-        val: app.battery_level
+        is_stale: app.solar_model.stale
+        val: app.solar_model.battery_level
         pos_hint: {'y': 0.83, 'x': 0.15}
         size_hint: (0.05, 0.1)
     Image:
@@ -135,25 +139,25 @@
         size_hint: (0.2, 0.2)
         pos_hint: {'x': 0.75, 'y': 0.7}
     LabeledArrow:
-        data_source: 'solaredge'
-        power: app.grid_power
-        reverse_arrow: app.grid_exporting
-        active_color: eco if app.grid_exporting else non_eco
+        is_stale: app.solar_model.stale
+        power: app.solar_model.grid_power
+        reverse_arrow: app.solar_model.grid_exporting
+        active_color: eco if app.solar_model.grid_exporting else non_eco
         o_x: self.parent.width * 0.7
         o_y: self.parent.height * 0.8
         distance: self.parent.width * 0.2
         angle: 180
     LabeledArrow:
-        active_color: app.load_color
+        active_color: app.solar_model.load_color
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.8
         distance: self.parent.height * 0.1
         angle: 270
-        power: app.solar_edge_load
-        data_source: 'solaredge'
+        power: app.solar_model.load
+        is_stale: app.solar_model.stale
     EHLabel:
-        data_source: 'heatpump'
-        text: f'{app.outside_temperature} ºC'
+        is_stale: app.heat_pump_model.stale
+        text: str(app.heat_pump_model.outside_temperature) + ' ºC'
         size_hint: (0.1, 0.1)
         pos_hint: {'x': 0.65, 'y': 0.6}
         valign: 'middle'
@@ -163,34 +167,34 @@
         pos_hint: {'x': 0.001, 'y': 0.34}
 
     PowerArrow:
-        active_color: app.load_color
+        active_color: app.solar_model.load_color
         # from House to first branches
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.6
         distance: self.parent.height * 0.1
         angle: 270
-        power: app.solar_edge_load
+        power: app.solar_model.load
     Image:
         source: 'energyhub/resources/shower.png'
         size_hint: (0.2, 0.2)
         pos_hint: {'x': 0.05, 'y': 0.3}
     LabeledArrow:
         # first left branch
-        data_source: 'heatpump'
-        active_color: app.load_color
+        is_stale: app.heat_pump_model.stale
+        active_color: app.solar_model.load_color
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.5
         distance: self.parent.width * 0.2
         angle: 180
-        power: app.heating_power
+        power: app.heat_pump_model.heating_power
     Image:
         source: 'energyhub/resources/light-bulb-2-256.png'
         size_hint: (0.2, 0.2)
         pos_hint: {'x': 0.75, 'y': 0.42}
     LabeledArrow:
         # first right branch
-        data_source: 'solaredge'
-        active_color: app.load_color
+        is_stale: app.solar_model.stale
+        active_color: app.solar_model.load_color
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.5
         distance: self.parent.width * 0.2
@@ -198,48 +202,48 @@
         power: app.remaining_load
     PowerArrow:
         # from first branches to second branches
-        active_color: app.load_color
+        active_color: app.solar_model.load_color
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.5
         distance: self.parent.height * 0.1
         angle: 270
         power: app._bottom_arms_power
     LabeledArrow:
-        data_source: 'heatpump'
-        active_color: app.load_color
+        is_stale: app.heat_pump_model.stale
+        active_color: app.solar_model.load_color
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.4
         distance: self.parent.width * 0.2
         angle: 180
-        power: app.dhw_power
+        power: app.heat_pump_model.dhw_power
     LabeledArrow:
-        data_source: 'myenergi'
-        active_color: app.load_color
+        is_stale: app.diverter_model.stale
+        active_color: app.solar_model.load_color
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.4
         distance: self.parent.width * 0.2
         angle: 0
-        power: app.eddi_power
+        power: app.diverter_model.immersion_power
     Image:
         source: 'energyhub/resources/immersion-heater.png'
         size_hint: (0.2, 0.2)
         pos_hint: {'x': 0.75, 'y': 0.3}
     LabeledArrow:
         # to car load
-        data_source: 'myenergi'
-        active_color: app.load_color
+        is_stale: app.diverter_model.stale
+        active_color: app.solar_model.load_color
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.4
         distance: self.parent.height * 0.1
         angle: 270
-        power: app.zappi_power
+        power: app.diverter_model.car_charger_power
     Image:
         source: 'energyhub/resources/ipace.jpg'
         size_hint: (0.5, 0.3)
         allow_stretch: False
         pos_hint: {'x': 0.25, 'y': 0.1}
     EHLabel:
-        data_source: 'car'
-        text: app.car_charge_label
+        is_stale: app.car_model.stale
+        text: app.car_model.charge_label
         pos_hint: {'y': 0.12, 'x': 0.45}
         size_hint: (0.1, 0.05)
