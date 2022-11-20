@@ -21,13 +21,11 @@ from matplotlib import pyplot as plt
 # importing numpy
 import numpy as np
 from kivy.garden.matplotlib import FigureCanvasKivyAgg
-from urllib3.exceptions import NewConnectionError
 
 from ecoforest.ecoforest_processor import EcoforestClient
 from solaredge.solar_edge_api import SolarEdgeClient
 from energyhub.config import config
 from mec.zp import MyEnergiHost
-from kivy_arrow.arrow import Arrow
 
 # kivy.require('1.0.7')
 
