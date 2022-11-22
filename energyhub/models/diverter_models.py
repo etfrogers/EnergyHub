@@ -10,8 +10,8 @@ from mec.zp import MyEnergiHost
 
 
 class MyEnergiModel(BaseModel):
-    immersion_power = NumericProperty(0.5)
-    car_charger_power = NumericProperty(0.5)
+    immersion_power = NumericProperty(0)
+    car_charger_power = NumericProperty(0)
 
     def __init__(self, username, api_key, **kwargs):
         super().__init__(**kwargs)
