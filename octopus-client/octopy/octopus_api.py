@@ -5,7 +5,8 @@ import requests
 
 BASE_URL = "https://api.octopus.energy"
 PRODUCT_CODE = "AGILE-18-02-21"
-TARIFF_CODE = f"E-1R-{PRODUCT_CODE}-C"
+REGION_CODE = 'H'  # Southern England
+TARIFF_CODE = f"E-1R-{PRODUCT_CODE}-{REGION_CODE}"
 TARIFF_URL = f"{BASE_URL}/v1/products/{PRODUCT_CODE}/electricity-tariffs/{TARIFF_CODE}"
 RATE_URL = f"{TARIFF_URL}/standard-unit-rates/"
 TIME_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
@@ -32,7 +33,7 @@ class RateTimepoint:
 
     def __str__(self):
         return f"{self.from_time.strftime('%d/%m/%Y %H:%M')}-" \
-               f"{self.from_time.strftime('%H:%M')}  £{self.price_inc_vat/100:.3f}"
+               f"{self.to_time.strftime('%H:%M')}  {self.price_inc_vat:.2f}p"
 
     def __repr__(self):
         return str(self)
