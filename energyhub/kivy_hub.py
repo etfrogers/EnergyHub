@@ -1,20 +1,14 @@
 import datetime
 import time
-from threading import Thread
-from typing import Optional, List, Dict
 
-import jlrpy
 from kivy.app import App
-from kivy.properties import NumericProperty, AliasProperty, DictProperty, \
-    ObjectProperty
+from kivy.properties import NumericProperty, AliasProperty, ObjectProperty
 from kivy.utils import platform
-from kivy.clock import mainthread
 
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.image import Image
 from matplotlib import pyplot as plt
 
-# importing numpy
 import numpy as np
 from kivy.garden.matplotlib import FigureCanvasKivyAgg
 
@@ -22,9 +16,8 @@ from energyhub.models.car_models import JLRCarModel
 from energyhub.models.diverter_models import MyEnergiModel
 from energyhub.models.heat_pump_models import EcoforestModel
 from energyhub.models.solar_models import SolarEdgeModel
-from energyhub.utils import popup_on_error, timestamps_to_hours, NoSSLVerification
+from energyhub.utils import popup_on_error, timestamps_to_hours
 from energyhub.config import config
-from mec.zp import MyEnergiHost
 
 # kivy.require('1.0.7')
 
