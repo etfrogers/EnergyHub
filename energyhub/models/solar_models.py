@@ -1,8 +1,12 @@
+from datetime import datetime
+from typing import Dict
+
+import numpy as np
 from kivy.clock import mainthread
 from kivy.properties import NumericProperty, BooleanProperty, StringProperty, AliasProperty
 
 from .model import BaseModel
-from energyhub.utils import popup_on_error
+from energyhub.utils import popup_on_error, TimestampArray
 from solaredge import SolarEdgeClient
 
 
@@ -43,6 +47,11 @@ class SolarEdgeModel(BaseModel):
         self.grid_power = power_flow_data['GRID']['currentPower'] * conversion_factor
         self.load = power_flow_data['LOAD']['currentPower'] * conversion_factor
         self.grid_exporting = {'from': 'LOAD', 'to': 'Grid'} in power_flow_data['connections']
+
+    def get_history_for_date(self, date: datetime.date) -> (np.ndarray, Dict[str, np.ndarray]):
+        data = self.connection.get_power_history_for_day(date)
+        timestamps = data.pop('timestamps').view(TimestampArray)
+        return timestamps, data
 
     def _get_battery_color(self):
         if self.battery_level > 80:

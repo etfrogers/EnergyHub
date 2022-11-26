@@ -1,9 +1,14 @@
+import datetime
+from typing import Dict
+
+import numpy as np
 from kivy.clock import mainthread
 from kivy.properties import NumericProperty
 
 from ecoforest.ecoforest_processor import EcoforestClient
+from ecoforest.history_dataset import ChunkClass
 from .model import BaseModel
-from energyhub.utils import popup_on_error
+from energyhub.utils import popup_on_error, TimestampArray
 
 
 class EcoforestModel(BaseModel):
@@ -43,3 +48,14 @@ class EcoforestModel(BaseModel):
                 raise ValueError('Unknown heat pump demand signal')
             self.heating_power = 0
             self.dhw_power = 0
+
+    def get_history_for_date(self, date: datetime.date) -> (np.ndarray, Dict[str, np.ndarray]):
+        raw_data = self.connection.get_history_for_date(date)
+        timestamps = np.array(raw_data.timestamps).view(TimestampArray)
+        # multiply by 1000 to convert native kW to W
+        data = {'outdoor_temp': raw_data.outdoor_temp,
+                'heating_power': raw_data.get_power_series(ChunkClass.heating_types()) * 1000,
+                'DHW_power': raw_data.get_power_series(ChunkClass.dhw_types()) * 1000,
+                # TODO separate diverted and demanded powers
+                }
+        return timestamps, data

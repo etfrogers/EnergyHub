@@ -53,3 +53,8 @@ class NoSSLVerification(AbstractContextManager):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         ssl._create_default_https_context = self._original_context
+
+
+class TimestampArray(np.ndarray):
+    def total_hours(self):
+        return timestamps_to_hours(self)

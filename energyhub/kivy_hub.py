@@ -10,6 +10,7 @@ from kivy.uix.image import Image
 from matplotlib import pyplot as plt
 
 import numpy as np
+# noinspection PyUnresolvedReferences
 from kivy.garden.matplotlib import FigureCanvasKivyAgg
 
 from energyhub.models.car_models import JLRCarModel
@@ -39,6 +40,7 @@ class IconButton(ButtonBehavior, Image):
     pass
 
 
+# noinspection PyUnresolvedReferences
 class EnergyHubApp(App):
     solar_model = ObjectProperty()
     car_model = ObjectProperty()
@@ -54,7 +56,7 @@ class EnergyHubApp(App):
     def small_size(self):
         return 25 if platform == 'android' else 15
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         super(EnergyHubApp, self).__init__(**kwargs)
         self.solar_model = SolarEdgeModel(config.data['solar-edge']['api-key'],
                                           config.data['solar-edge']['site-id'])
@@ -125,37 +127,25 @@ class EnergyHubApp(App):
 
     @popup_on_error('History')
     def build_history_graphs(self, date=None):
-        return
         history_panel = self.root.ids.history
         date_picker = history_panel.ids.history_date
         history_panel.clear_widgets()
         history_panel.add_widget(date_picker)
         if date is None:
             date = date_picker.date
-        data = self.solar_model.connection.get_power_history_for_day(date)
-        times = data['timestamps']
-        production_power = data['Production']
-        load_power = data['Consumption']
-        export_power = data['FeedIn']
-        import_power = data['Purchased']
+        solar_timestamps, solar_data = self.solar_model.get_history_for_date(date)
+        zappi_timestamps, zappi_powers = self.diverter_model.get_history_for_date(date, device='Z')
+        eddi_timestamps, eddi_powers = self.diverter_model.get_history_for_date(date, device='E')
+        heat_pump_timestamps, heat_pump_powers = self.heat_pump_model.get_history_for_date(date)
+        production_power = solar_data['Production']
+        load_power = solar_data['Consumption']
+        export_power = solar_data['FeedIn']
+        import_power = solar_data['Purchased']
 
-        try:
-            zappi_serial = self.zappi.sno
-            eddi_serial = self.eddi.sno
-        except TypeError:
-            time.sleep(1)
-            zappi_serial = self.zappi.sno
-            eddi_serial = self.eddi.sno
-
-        zappi_data = self.my_energi_connection.get_minute_data(zappi_serial, date.timetuple())
-        eddi_data = self.my_energi_connection.get_minute_data(eddi_serial, date.timetuple())
-        zappi_timestamps, zappi_powers = zappi_dict_to_arrays(zappi_data)
-        eddi_timestamps, eddi_powers = zappi_dict_to_arrays(eddi_data)
-
-        hours = timestamps_to_hours(times)
+        hours = timestamps_to_hours(solar_timestamps)
         fig = plt.figure()
+        plt.plot(solar_timestamps.total_hours(), load_power/1000)
         plt.plot(hours, production_power/1000)
-        plt.plot(hours, load_power/1000)
         plt.plot(hours, export_power/1000)
         plt.plot(hours, import_power/1000)
         plt.xticks([0, 6, 12, 18, 24])
@@ -165,12 +155,23 @@ class EnergyHubApp(App):
         history_panel.add_widget(FigureCanvasKivyAgg(fig))
 
         fig = plt.figure()
-        plt.plot(timestamps_to_hours(zappi_timestamps), np.array([p / 1000 for p in zappi_powers.values()]).T)
+        plt.plot(zappi_timestamps.total_hours(), np.array([p / 1000 for p in zappi_powers.values()]).T)
         plt.xticks([0, 6, 12, 18, 24])
         history_panel.add_widget(FigureCanvasKivyAgg(fig))
 
         fig = plt.figure()
-        plt.plot(timestamps_to_hours(eddi_timestamps), np.array([p / 1000 for p in eddi_powers.values()]).T)
+        plt.plot(eddi_timestamps.total_hours(), np.array([p / 1000 for p in eddi_powers.values()]).T)
+        plt.xticks([0, 6, 12, 18, 24])
+        history_panel.add_widget(FigureCanvasKivyAgg(fig))
+
+        fig = plt.figure()
+        plt.plot(heat_pump_timestamps.total_hours(), heat_pump_powers['DHW_power'] / 1000,
+                 heat_pump_timestamps.total_hours(), heat_pump_powers['heating_power'] / 1000)
+        plt.xticks([0, 6, 12, 18, 24])
+        history_panel.add_widget(FigureCanvasKivyAgg(fig))
+
+        fig = plt.figure()
+        plt.plot(heat_pump_timestamps.total_hours(), heat_pump_powers['outdoor_temp'])
         plt.xticks([0, 6, 12, 18, 24])
         history_panel.add_widget(FigureCanvasKivyAgg(fig))
 

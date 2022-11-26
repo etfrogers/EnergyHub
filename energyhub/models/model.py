@@ -1,6 +1,9 @@
+import datetime
 from abc import ABC, abstractmethod
 from threading import Thread
+from typing import Dict
 
+import numpy as np
 from kivy.clock import mainthread
 from kivy.event import EventDispatcher
 from kivy.properties import BooleanProperty
@@ -40,3 +43,7 @@ class BaseModel(EventDispatcher, ABC):
     def update_properties(self, data=None):
         self._update_properties(data)
         self.stale = False
+
+    @abstractmethod
+    def get_history_for_date(self, date: datetime.date) -> (np.ndarray, Dict[str, np.ndarray]):
+        raise NotImplementedError

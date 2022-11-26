@@ -1,11 +1,12 @@
 import datetime
 from typing import List, Dict
 
+import numpy as np
 from kivy.clock import mainthread
 from kivy.properties import NumericProperty
 
 from energyhub.models.model import BaseModel
-from energyhub.utils import popup_on_error, NoSSLVerification
+from energyhub.utils import popup_on_error, NoSSLVerification, TimestampArray
 from mec.zp import MyEnergiHost
 
 
@@ -38,14 +39,32 @@ class MyEnergiModel(BaseModel):
 
     @property
     def zappi(self):
+        if self.connection.state is None and self.thread:
+            self.thread.join()
         return self.connection.state.zappi_list()[0]
 
     @property
     def eddi(self):
+        if self.connection.state is None and self.thread:
+            self.thread.join()
         return self.connection.state.eddi_list()[0]
 
+    def get_history_for_date(self, date: datetime.date,
+                             device: str = 'Z') -> (np.ndarray, Dict[str, np.ndarray]):
+        if device == 'Z':
+            serial = self.zappi.sno
+        elif device == 'E':
+            serial = self.eddi.sno
+        else:
+            raise ValueError("Device must be 'E' or 'Z'")
 
-def zappi_dict_to_arrays(zappi_data: List[Dict]):
+        data = self.connection.get_minute_data(serial, date.timetuple())
+        timestamps, powers = history_dict_to_arrays(data)
+        timestamps = timestamps.view(TimestampArray)
+        return timestamps, powers
+
+
+def history_dict_to_arrays(zappi_data: List[Dict]):
     timestamps = []
     import_power = []
     export_power = []
