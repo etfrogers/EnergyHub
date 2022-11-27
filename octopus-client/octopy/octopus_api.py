@@ -3,6 +3,25 @@ import json
 
 import requests
 
+"""
+Region codes
+------------
+A – Eastern England
+B – East Midlands
+C – London
+D – Merseyside and Northern Wales
+E – West Midlands
+F – North Eastern England
+G – North Western England
+H – Southern England
+J – South Eastern England
+K – Southern Wales
+L – South Western England
+M – Yorkshire
+N – Southern Scotland
+P – Northern Scotland
+"""
+
 BASE_URL = "https://api.octopus.energy"
 PRODUCT_CODE = "AGILE-18-02-21"
 REGION_CODE = 'H'  # Southern England
