@@ -1,7 +1,8 @@
+import datetime
 from datetime import date, timedelta
 from functools import partial
 import kivy
-from kivy.properties import ObjectProperty
+from kivy.properties import ObjectProperty, BooleanProperty
 
 kivy.require('1.4.0')
 
@@ -41,14 +42,15 @@ class DatePicker(BoxLayout):
         self.populate_body()
         self.populate_header()
 
+    @property
+    def month_year_text(self):
+        return self.month_names[self.date.month - 1] + ' ' + str(self.date.year)
+
     def populate_header(self, *args, **kwargs):
         self.header.clear_widgets()
-        previous_month = Button(text="<")
-        previous_month.bind(on_press=partial(self.move_previous_month))
+        previous_month = Button(text="<", on_press=self.move_previous_month)
         next_month = Button(text=">", on_press=self.move_next_month)
-        next_month.bind(on_press=partial(self.move_next_month))
-        month_year_text = self.month_names[self.date.month - 1] + ' ' + str(self.date.year)
-        current_month = Label(text=month_year_text, size_hint=(2, 1))
+        current_month = Label(text=self.month_year_text, size_hint=(2, 1))
 
         self.header.add_widget(previous_month)
         self.header.add_widget(current_month)
@@ -88,3 +90,85 @@ class DatePicker(BoxLayout):
             self.date = date(self.date.year, self.date.month - 1, self.date.day)
         self.populate_header()
         self.populate_body()
+
+
+class CollapsibleDatePicker(DatePicker):
+    collapsed = BooleanProperty(True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.on_collapsed()
+
+    def populate_header(self, *args, **kwargs):
+        if self.collapsed:
+            self._populate_collapsed_header()
+        else:
+            super().populate_header(*args, **kwargs)
+            label = self.header.children[1]
+            self.header.remove_widget(label)
+            current_month = Button(text=self.month_year_text, size_hint=(2, 1),
+                                   on_press=self.collapse)
+            self.header.add_widget(current_month, index=1)
+
+    def populate_body(self, *args, **kwargs):
+        if self.collapsed:
+            self.body.clear_widgets()
+        else:
+            super().populate_body(*args, **kwargs)
+
+    def _populate_collapsed_header(self):
+        self.header.clear_widgets()
+        blank_button = Button(text='')
+        previous_day = Button(text="<", on_press=self.move_previous_day)
+        next_day = Button(text=">", on_press=self.move_next_day)
+        go_to_today = Button(text=">|", on_press=self.go_to_today)
+        current_date = Button(text=self.date.strftime('%d/%m/%y'), size_hint=(2, 1),
+                              on_press=self.uncollapse)
+
+        self.ids['date_label'] = current_date
+        self.header.add_widget(blank_button)
+        self.header.add_widget(previous_day)
+        self.header.add_widget(current_date)
+        self.header.add_widget(next_day)
+        self.header.add_widget(go_to_today)
+
+    def collapse(self, _=None):
+        self.collapsed = True
+
+    def uncollapse(self, _=None):
+        self.collapsed = False
+
+    def go_to_today(self, _):
+        self.date = datetime.date.today()
+
+    def move_next_day(self, _):
+        if self.date < datetime.date.today():
+            self.date = self.date + datetime.timedelta(days=1)
+
+    def move_previous_day(self, _):
+        self.date = self.date - datetime.timedelta(days=1)
+
+    def on_collapsed(self, *args):
+        if self.collapsed:
+            self.body.height = '0dp'
+            self.body.size_hint_y = None
+            self.header.size_hint = (1, 1)
+            self.size_hint_y = 0.3
+        else:
+            self.header.size_hint = (1, 0.2)
+            # self.body.height = None
+            self.body.size_hint_y = 1
+            self.size_hint_y = 1.5
+        self.populate_header()
+        self.populate_body()
+
+    def on_date(self, *args):
+        if self.collapsed:
+            try:
+                self.ids.date_label.text = self.date.strftime('%d/%m/%y')
+            except AttributeError:
+                pass
+
+    def set_date(self, *args, **kwargs):
+        super(CollapsibleDatePicker, self).set_date(*args, **kwargs)
+        self.collapse()
