@@ -99,8 +99,8 @@ def history_dict_to_arrays(zappi_data: List[Dict]):
     charging_power = charge_imported + charge_diverted
     powers = {'import': import_power,
               'export': export_power,
-              'charge_diverted': charge_diverted,
-              'charge_imported': charge_imported,
-              'charging_power': charging_power,
+              'power_diverted': charge_diverted,
+              'power_imported': charge_imported,
+              'total_power': charging_power,
               }
     return timestamps, powers

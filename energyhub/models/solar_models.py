@@ -53,6 +53,11 @@ class SolarEdgeModel(BaseModel):
         timestamps = data.pop('timestamps').view(TimestampArray)
         return timestamps, data
 
+    def get_battery_history_for_date(self, date: datetime.date) -> (np.ndarray, Dict[str, np.ndarray]):
+        data = self.connection.get_battery_history_for_day(date)
+        timestamps = data.pop('timestamps').view(TimestampArray)
+        return timestamps, data
+
     def _get_battery_color(self):
         if self.battery_level > 80:
             return 0, 1, 0, 1

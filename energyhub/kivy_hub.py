@@ -17,7 +17,7 @@ from energyhub.models.car_models import JLRCarModel
 from energyhub.models.diverter_models import MyEnergiModel
 from energyhub.models.heat_pump_models import EcoforestModel
 from energyhub.models.solar_models import SolarEdgeModel
-from energyhub.utils import popup_on_error, timestamps_to_hours
+from energyhub.utils import popup_on_error, normalise_to_timestamps
 from energyhub.config import config
 
 # kivy.require('1.0.7')
@@ -40,7 +40,6 @@ class IconButton(ButtonBehavior, Image):
     pass
 
 
-# noinspection PyUnresolvedReferences
 class EnergyHubApp(App):
     solar_model = ObjectProperty()
     car_model = ObjectProperty()
@@ -136,43 +135,81 @@ class EnergyHubApp(App):
         solar_timestamps, solar_data = self.solar_model.get_history_for_date(date)
         zappi_timestamps, zappi_powers = self.diverter_model.get_history_for_date(date, device='Z')
         eddi_timestamps, eddi_powers = self.diverter_model.get_history_for_date(date, device='E')
-        heat_pump_timestamps, heat_pump_powers = self.heat_pump_model.get_history_for_date(date)
+        heat_pump_timestamps, heat_pump_data = self.heat_pump_model.get_history_for_date(date)
+        battery_timestamps, battery_data = self.solar_model.get_battery_history_for_date(date)
         production_power = solar_data['Production']
         load_power = solar_data['Consumption']
         export_power = solar_data['FeedIn']
         import_power = solar_data['Purchased']
 
-        hours = timestamps_to_hours(solar_timestamps)
-        fig = plt.figure()
-        plt.plot(solar_timestamps.total_hours(), load_power/1000)
-        plt.plot(hours, production_power/1000)
-        plt.plot(hours, export_power/1000)
-        plt.plot(hours, import_power/1000)
-        plt.xticks([0, 6, 12, 18, 24])
-        plt.ylabel('Power (kW)')
+        ref_timestamps = solar_timestamps
+        car_charge_power = normalise_to_timestamps(ref_timestamps, zappi_timestamps, zappi_powers['total_power'])
+        immersion_power = normalise_to_timestamps(ref_timestamps, eddi_timestamps, eddi_powers['total_power'])
+        dhw_power = normalise_to_timestamps(ref_timestamps, heat_pump_timestamps, heat_pump_data['DHW_power'])
+        heating_power = normalise_to_timestamps(ref_timestamps, heat_pump_timestamps, heat_pump_data['heating_power'])
+        battery_grid_charging = normalise_to_timestamps(ref_timestamps, battery_timestamps,
+                                                        battery_data['charge_power_from_grid'])
+        battery_solar_charging = normalise_to_timestamps(ref_timestamps, battery_timestamps,
+                                                         battery_data['charge_power_from_solar'])
+        battery_discharging = normalise_to_timestamps(ref_timestamps, battery_timestamps,
+                                                      battery_data['discharge_power'])
 
-        # adding plot to kivy boxlayout
+        remaining_load = load_power - (car_charge_power + immersion_power
+                                       + dhw_power + heating_power + battery_grid_charging)
+
+        solar_production = production_power + battery_solar_charging - battery_discharging
+        solar_consumption = solar_production - (export_power + battery_solar_charging)
+
+        ref_hours = ref_timestamps.total_hours()
+        fig = plt.figure()
+
+        plt.stackplot(ref_hours, (car_charge_power/1000,
+                                  immersion_power/1000,
+                                  dhw_power/1000,
+                                  heating_power/1000,
+                                  battery_grid_charging/1000,
+                                  remaining_load/1000,
+                                  ),
+                      labels=('Car charge', 'Immersion', 'DWH', 'Heating', 'Battery charging', 'Other'),
+                      )
+        plt.legend()
+        # plt.plot(ref_hours, load_power/1000, linestyle='--')
+        plt.xticks([0, 6, 12, 18, 24])
+        # plt.ylabel('Power (kW)')
+        plt.tight_layout()
         history_panel.add_widget(FigureCanvasKivyAgg(fig))
 
         fig = plt.figure()
-        plt.plot(zappi_timestamps.total_hours(), np.array([p / 1000 for p in zappi_powers.values()]).T)
+        plt.stackplot(ref_hours, (solar_consumption / 1000,
+                                  battery_discharging / 1000,
+                                  import_power / 1000,
+                                  ),
+                      labels=('Solar consumption', 'Battery discharging', 'Import'),
+                      )
+        # plt.plot(ref_hours, load_power/1000, linestyle='--')
         plt.xticks([0, 6, 12, 18, 24])
+        plt.legend()
+        plt.tight_layout()
         history_panel.add_widget(FigureCanvasKivyAgg(fig))
 
         fig = plt.figure()
-        plt.plot(eddi_timestamps.total_hours(), np.array([p / 1000 for p in eddi_powers.values()]).T)
+        plt.stackplot(ref_hours, (solar_consumption/1000,
+                                  battery_solar_charging/1000,
+                                  export_power/1000
+                                  ),
+                      labels=('Consumption', 'Battery charging', 'Export'),
+                      )
+        plt.legend()
         plt.xticks([0, 6, 12, 18, 24])
+        plt.tight_layout()
         history_panel.add_widget(FigureCanvasKivyAgg(fig))
 
         fig = plt.figure()
-        plt.plot(heat_pump_timestamps.total_hours(), heat_pump_powers['DHW_power'] / 1000,
-                 heat_pump_timestamps.total_hours(), heat_pump_powers['heating_power'] / 1000)
+        plt.stackplot(ref_hours, (solar_production / 1000, battery_discharging / 1000),
+                      labels=('Solar production', 'Battery production'))
+        plt.legend()
         plt.xticks([0, 6, 12, 18, 24])
-        history_panel.add_widget(FigureCanvasKivyAgg(fig))
-
-        fig = plt.figure()
-        plt.plot(heat_pump_timestamps.total_hours(), heat_pump_powers['outdoor_temp'])
-        plt.xticks([0, 6, 12, 18, 24])
+        plt.tight_layout()
         history_panel.add_widget(FigureCanvasKivyAgg(fig))
 
 
