@@ -58,7 +58,8 @@ class MyEnergiModel(BaseModel):
         else:
             raise ValueError("Device must be 'E' or 'Z'")
 
-        data = self.connection.get_minute_data(serial, date.timetuple())
+        with NoSSLVerification():
+            data = self.connection.get_minute_data(serial, date.timetuple())
         timestamps, powers = history_dict_to_arrays(data)
         timestamps = timestamps.view(TimestampArray)
         return timestamps, powers
