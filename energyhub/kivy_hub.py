@@ -25,6 +25,9 @@ from energyhub.config import config
 from kivy.core.window import Window
 if platform != 'android':
     Window.size = (1440/5, 3216/5)
+    plt.rcParams['font.size'] = 12
+else:
+    plt.rcParams['font.size'] = 24
 
 
 # TODO swipe down to refresh
@@ -199,14 +202,6 @@ class EnergyHubApp(App):
                                   ),
                       labels=('Consumption', 'Battery charging', 'Export'),
                       )
-        plt.legend()
-        plt.xticks([0, 6, 12, 18, 24])
-        plt.tight_layout()
-        history_panel.add_widget(FigureCanvasKivyAgg(fig))
-
-        fig = plt.figure()
-        plt.stackplot(ref_hours, (solar_production / 1000, battery_discharging / 1000),
-                      labels=('Solar production', 'Battery production'))
         plt.legend()
         plt.xticks([0, 6, 12, 18, 24])
         plt.tight_layout()
