@@ -1,6 +1,3 @@
-import datetime
-import time
-
 from kivy.app import App
 from kivy.properties import NumericProperty, AliasProperty, ObjectProperty
 from kivy.utils import platform
@@ -9,7 +6,6 @@ from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.image import Image
 from matplotlib import pyplot as plt
 
-import numpy as np
 # noinspection PyUnresolvedReferences
 from kivy.garden.matplotlib import FigureCanvasKivyAgg
 
@@ -156,6 +152,8 @@ class EnergyHubApp(App):
                                                          battery_data['charge_power_from_solar'])
         battery_discharging = normalise_to_timestamps(ref_timestamps, battery_timestamps,
                                                       battery_data['discharge_power'])
+        battery_state = normalise_to_timestamps(ref_timestamps, battery_timestamps,
+                                                battery_data['charge_percentage'])
 
         remaining_load = load_power - (car_charge_power + immersion_power
                                        + dhw_power + heating_power + battery_grid_charging)
@@ -164,48 +162,47 @@ class EnergyHubApp(App):
         solar_consumption = solar_production - (export_power + battery_solar_charging)
 
         ref_hours = ref_timestamps.total_hours()
-        fig = plt.figure()
-
-        plt.stackplot(ref_hours, (car_charge_power/1000,
-                                  immersion_power/1000,
-                                  dhw_power/1000,
-                                  heating_power/1000,
-                                  battery_grid_charging/1000,
-                                  remaining_load/1000,
-                                  ),
-                      labels=('Car charge', 'Immersion', 'DWH', 'Heating', 'Battery charging', 'Other'),
-                      )
-        plt.legend()
+        self._plot_to_history_panel(ref_hours, (car_charge_power/1000,
+                                                immersion_power/1000,
+                                                dhw_power/1000,
+                                                heating_power/1000,
+                                                battery_grid_charging/1000,
+                                                remaining_load/1000,
+                                                ),
+                                    labels=('Car charge', 'Immersion', 'DWH', 'Heating', 'Battery charging', 'Other'),
+                                    )
         # plt.plot(ref_hours, load_power/1000, linestyle='--')
-        plt.xticks([0, 6, 12, 18, 24])
-        # plt.ylabel('Power (kW)')
-        plt.tight_layout()
-        history_panel.add_widget(FigureCanvasKivyAgg(fig))
 
-        fig = plt.figure()
-        plt.stackplot(ref_hours, (solar_consumption / 1000,
-                                  battery_discharging / 1000,
-                                  import_power / 1000,
-                                  ),
-                      labels=('Solar consumption', 'Battery discharging', 'Import'),
-                      )
+        self._plot_to_history_panel(ref_hours, (solar_consumption / 1000,
+                                                battery_discharging / 1000,
+                                                import_power / 1000,
+                                                ),
+                                    labels=('Solar consumption', 'Battery discharging', 'Import'),
+                                    )
         # plt.plot(ref_hours, load_power/1000, linestyle='--')
-        plt.xticks([0, 6, 12, 18, 24])
-        plt.legend()
-        plt.tight_layout()
-        history_panel.add_widget(FigureCanvasKivyAgg(fig))
 
+        self._plot_to_history_panel(ref_hours, (solar_consumption/1000,
+                                                battery_solar_charging/1000,
+                                                export_power/1000
+                                                ),
+                                    labels=('Consumption', 'Battery charging', 'Export'),
+                                    )
+
+        ax = self._plot_to_history_panel(ref_hours, battery_state,
+                                         # labels=('Battery state', ),
+                                         plot_fun=plt.plot,
+                                         )
+        ax.set_ylim([0, 100])
+
+    def _plot_to_history_panel(self, x, y, plot_fun=plt.stackplot, **kwargs):
+        history_panel = self.root.ids.history
         fig = plt.figure()
-        plt.stackplot(ref_hours, (solar_consumption/1000,
-                                  battery_solar_charging/1000,
-                                  export_power/1000
-                                  ),
-                      labels=('Consumption', 'Battery charging', 'Export'),
-                      )
+        plot_fun(x, y, **kwargs)
         plt.legend()
         plt.xticks([0, 6, 12, 18, 24])
         plt.tight_layout()
         history_panel.add_widget(FigureCanvasKivyAgg(fig))
+        return plt.gca()
 
 
 if __name__ == '__main__':
