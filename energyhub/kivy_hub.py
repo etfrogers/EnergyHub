@@ -1,4 +1,5 @@
 from kivy.app import App
+from kivy.clock import Clock
 from kivy.properties import NumericProperty, AliasProperty, ObjectProperty
 from kivy.utils import platform
 
@@ -84,6 +85,8 @@ class EnergyHubApp(App):
         for model in self.models:
             model.thread.join()
         self.refresh()
+        # build graphs needs to be called after initialisation to get sizes correct
+        Clock.schedule_once(lambda x: self.build_history_graphs(), 0.1)
 
     def on_pause(self):
         return True
@@ -91,7 +94,6 @@ class EnergyHubApp(App):
     def refresh(self):
         for model in self.models:
             model.refresh()
-        self.build_history_graphs()
 
     def _get_remaining_load(self):
         return self.solar_model.load - (self.diverter_model.immersion_power
@@ -201,8 +203,8 @@ class EnergyHubApp(App):
         plt.xticks([0, 6, 12, 18, 24])
         plt.tight_layout()
         widget = FigureCanvasKivyAgg(fig)
-        # widget.height = widget.width * 4/4
-        # widget.size_hint_y = None
+        widget.size_hint_y = None
+        widget.height = self.root.width * 0.5
         history_panel.add_widget(widget)
         return plt.gca()
 

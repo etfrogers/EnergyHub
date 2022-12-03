@@ -1,5 +1,3 @@
-#from matplotlib import pyplot as plt
-
 #:import DatePicker energyhub.datepicker.DatePicker
 
 <HistoryPanel@BoxLayout>:
@@ -8,9 +6,11 @@
         id: history_date
         on_date: app.build_history_graphs(self.date)
         size_hint_y: None
-#    ScrollView:
-#        do_scroll_x: False
-#        do_scroll_y: True
-    BoxLayout:
-        orientation: 'vertical'
-        id: graph_panel
+    ScrollView:
+        do_scroll_x: False
+        do_scroll_y: True
+        BoxLayout:
+            size_hint_y: None
+            height: self.minimum_height
+            orientation: 'vertical'
+            id: graph_panel
