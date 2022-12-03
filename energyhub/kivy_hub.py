@@ -126,9 +126,8 @@ class EnergyHubApp(App):
     @popup_on_error('History')
     def build_history_graphs(self, date=None):
         history_panel = self.root.ids.history
-        date_picker = history_panel.ids.history_date
-        history_panel.clear_widgets()
-        history_panel.add_widget(date_picker)
+        date_picker = self.root.ids.history.ids.history_date
+        history_panel.ids.graph_panel.clear_widgets()
         if date is None:
             date = date_picker.date
         solar_timestamps, solar_data = self.solar_model.get_history_for_date(date)
@@ -195,13 +194,16 @@ class EnergyHubApp(App):
         ax.set_ylim([0, 100])
 
     def _plot_to_history_panel(self, x, y, plot_fun=plt.stackplot, **kwargs):
-        history_panel = self.root.ids.history
+        history_panel = self.root.ids.history.ids.graph_panel
         fig = plt.figure()
         plot_fun(x, y, **kwargs)
         plt.legend()
         plt.xticks([0, 6, 12, 18, 24])
         plt.tight_layout()
-        history_panel.add_widget(FigureCanvasKivyAgg(fig))
+        widget = FigureCanvasKivyAgg(fig)
+        # widget.height = widget.width * 4/4
+        # widget.size_hint_y = None
+        history_panel.add_widget(widget)
         return plt.gca()
 
 

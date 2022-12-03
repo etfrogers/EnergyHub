@@ -98,6 +98,9 @@ class CollapsibleDatePicker(DatePicker):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.on_collapsed()
+        self.header.height = '36sp'
+        self.header.size_hint_y = None
+        self.height = self.header.height
 
     def populate_header(self, *args, **kwargs):
         if self.collapsed:
@@ -151,14 +154,10 @@ class CollapsibleDatePicker(DatePicker):
     def on_collapsed(self, *args):
         if self.collapsed:
             self.body.height = '0dp'
-            self.body.size_hint_y = None
-            self.header.size_hint = (1, 1)
-            self.size_hint_y = 0.3
+            self.height = self.header.height
         else:
-            self.header.size_hint = (1, 0.2)
-            # self.body.height = None
-            self.body.size_hint_y = 1
-            self.size_hint_y = 1.5
+            self.body.height = self.body.width * 0.5
+            self.height = self.header.height + self.body.height
         self.populate_header()
         self.populate_body()
 
