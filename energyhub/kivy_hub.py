@@ -60,7 +60,8 @@ class EnergyHubApp(App):
         self.solar_model = SolarEdgeModel(config.data['solar-edge']['api-key'],
                                           config.data['solar-edge']['site-id'])
         self.car_model = JLRCarModel(config.data['jlr']['username'],
-                                     config.data['jlr']['password'])
+                                     config.data['jlr']['password'],
+                                     config.data['jlr'].get('vin', None))
         self.heat_pump_model = EcoforestModel(config.data['ecoforest']['server'],
                                               config.data['ecoforest']['port'],
                                               config.data['ecoforest']['serial-number'],

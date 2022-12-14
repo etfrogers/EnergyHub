@@ -18,10 +18,18 @@ class JLRCarModel(BaseModel):
     car_charge_rate_miles = NumericProperty(0.5)
     car_charge_rate_pc = NumericProperty(0.5)
 
-    def __init__(self, username, password, *args, **kwargs):
+    def __init__(self, username, password, vin=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.username = username
         self.password = password
+        self.vin = vin
+
+    @property
+    def vehicle(self):
+        if self.vin is None:
+            return self.connection.vehicles[0]
+        else:
+            return next((v for v in self.connection.vehicles if v.vin == self.vin))
 
     @popup_on_error('Error initialising JLR')
     def _connect(self):
@@ -29,8 +37,8 @@ class JLRCarModel(BaseModel):
             self.connection = jlrpy.Connection(self.username, self.password)
             self.connection.refresh_tokens()
 
-    def _jlr_vehicle_server_refresh(self, timeout=10, retry_time=1):
-        vehicle = self.connection.vehicles[0]
+    def _jlr_vehicle_server_refresh(self, timeout=30, retry_time=1):
+        vehicle = self.vehicle
         response = vehicle.get_health_status()  # This should refresh status from the vehicle to JLR servers
         refresh_status = 'Started'
         elapsed_time = 0
@@ -44,9 +52,8 @@ class JLRCarModel(BaseModel):
     @popup_on_error('JLR')
     def _refresh(self):
         with NoSSLVerification():
-            vehicle = self.connection.vehicles[0]
             self._jlr_vehicle_server_refresh()
-            status = vehicle.get_status()  # This should get status from JLR servers to us
+            status = self.vehicle.get_status()  # This should get status from JLR servers to us
         self.update_properties(status)
 
     @mainthread
