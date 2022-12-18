@@ -56,6 +56,14 @@ class EcoforestModel(BaseModel):
         data = {'outdoor_temp': raw_data.outdoor_temp,
                 'heating_power': raw_data.get_power_series(ChunkClass.heating_types()) * 1000,
                 'DHW_power': raw_data.get_power_series(ChunkClass.dhw_types()) * 1000,
+                'legionnaires_power': raw_data.get_power_series(ChunkClass.legionnaires_types()) * 1000,
+                'combined_power': raw_data.get_power_series(ChunkClass.combined_types()) * 1000,
+                'unknown_power': raw_data.get_power_series(ChunkClass.UNKNOWN) * 1000,
                 # TODO separate diverted and demanded powers
+                'heating_energy': raw_data.consumed_energy_of_type(ChunkClass.heating_types()) * 1000,
+                'DHW_energy': raw_data.consumed_energy_of_type(ChunkClass.dhw_types()) * 1000,
+                'legionnaires_energy': raw_data.consumed_energy_of_type(ChunkClass.legionnaires_types()) * 1000,
+                'combined_energy': raw_data.consumed_energy_of_type(ChunkClass.combined_types()) * 1000,
+                'unknown_energy': raw_data.consumed_energy_of_type(ChunkClass.UNKNOWN) * 1000,
                 }
         return timestamps, data

@@ -50,7 +50,13 @@ class SolarEdgeModel(BaseModel):
 
     def get_history_for_date(self, date: datetime.date) -> (np.ndarray, Dict[str, np.ndarray]):
         data = self.connection.get_power_history_for_day(date)
+        data['export'] = data.pop('FeedIn')
         timestamps = data.pop('timestamps').view(TimestampArray)
+        energy_data = self.connection.get_energy_for_day(date)
+        energy_data['export'] = energy_data.pop('FeedIn')
+        energy_data = {k+'_energy': v for k, v in energy_data.items()}
+        data.update(energy_data)
+        data = {k.lower(): v for k, v in data.items()}
         return timestamps, data
 
     def get_battery_history_for_date(self, date: datetime.date) -> (np.ndarray, Dict[str, np.ndarray]):

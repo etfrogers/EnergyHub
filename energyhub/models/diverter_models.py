@@ -61,16 +61,39 @@ class MyEnergiModel(BaseModel):
         with NoSSLVerification():
             data = self.connection.get_minute_data(serial, date.timetuple())
         timestamps, powers = history_dict_to_arrays(data)
+        mean_voltage_per_hour = {hour: np.mean([d['v1'] for d in data if d.get('hr', 0) == hour]) for hour in range(24)}
+        hour_data = self.connection.get_hour_data(serial, date.timetuple())
+        energies = hour_dict_to_energies(hour_data, mean_voltage_per_hour)
         timestamps = timestamps.view(TimestampArray)
-        return timestamps, powers
+        output = powers
+        output.update(energies)
+        return timestamps, output
+
+
+MY_ENERGI_NAME_MAPPING = {
+    'import': 'imp',
+    'export': 'exp',
+    'diverted': 'h1d',
+    'imported': 'h1b',
+}
+
+
+def hour_dict_to_energies(hour_data: List[Dict], mean_voltage_per_hour: Dict):
+    energies = {}
+    for name, myenergi_name in MY_ENERGI_NAME_MAPPING.items():
+        energies[name + '_energy'] = sum([datapoint.get(myenergi_name, 0)
+                                          / (60*60)
+                                          # / mean_voltage_per_hour[datapoint.get('hr', 0)]
+                                          for datapoint in hour_data])
+    energies['total_energy'] = energies['diverted_energy'] + energies['imported_energy']
+    return energies
 
 
 def history_dict_to_arrays(zappi_data: List[Dict]):
     timestamps = []
-    import_power = []
-    export_power = []
-    charge_diverted = []
-    charge_imported = []
+    powers = {}
+    for name in MY_ENERGI_NAME_MAPPING:
+        powers[name] = []
     volts = []
     for datapoint in zappi_data:
         # entries with zero value are omitted from data
@@ -81,27 +104,17 @@ def history_dict_to_arrays(zappi_data: List[Dict]):
                                       minute=datapoint.get('min', 0),  # min may not be present
                                       )
         timestamps.append(timestamp)
-        import_power.append(datapoint.get('imp', 0))
-        export_power.append(datapoint.get('exp', 0))
-        charge_diverted.append(datapoint.get('h1d', 0))
-        charge_imported.append(datapoint.get('h1b', 0))
         volts.append(datapoint['v1'])
+        for name, myenergi_name in MY_ENERGI_NAME_MAPPING.items():
+            powers[name].append(datapoint.get(myenergi_name, 0))
     timestamps = np.array(timestamps)
-    import_power = np.array(import_power, dtype=float)
-    export_power = np.array(export_power, dtype=float)
-    charge_imported = np.array(charge_imported, dtype=float)
-    charge_diverted = np.array(charge_diverted, dtype=float)
+    for name in MY_ENERGI_NAME_MAPPING:
+        powers[name] = np.array(powers[name], dtype=float)
     volts = np.array(volts)/10
     to_watts = 4/volts
-    import_power *= to_watts
-    export_power *= to_watts
-    charge_imported *= to_watts
-    charge_diverted *= to_watts
-    charging_power = charge_imported + charge_diverted
-    powers = {'import': import_power,
-              'export': export_power,
-              'power_diverted': charge_diverted,
-              'power_imported': charge_imported,
-              'total_power': charging_power,
-              }
+    for name in MY_ENERGI_NAME_MAPPING:
+        powers[name] *= to_watts
+    powers['total'] = powers['diverted'] + powers['imported']
+    for name in list(powers):
+        powers[name + '_power'] = powers.pop(name)
     return timestamps, powers
