@@ -191,6 +191,18 @@ class EnergyHubApp(App):
         solar_production = production_power + battery_solar_charging - battery_discharging
         solar_consumption = solar_production - (export_power + battery_solar_charging)
 
+        if battery_data['charge_from_grid_energy'] > 0:
+            total_consumption = solar_data['consumption_energy'] + battery_data['charge_from_grid_energy']
+            assert battery_state[-1] < 11
+        else:
+            total_consumption = solar_data['consumption_energy']
+        battery_discharge_energy = battery_data['discharge_energy']
+        solar_production_energy = solar_data['production_energy']
+        export_energy = solar_data['export_energy']
+        battery_solar_charging_energy = battery_data['charge_from_solar_energy']
+        solar_consumption_energy = (solar_production_energy
+                                    - (export_energy + battery_solar_charging_energy))
+
         remaining_energy = (solar_data['consumption_energy']
                             - (heat_pump_data['heating_energy']
                                + heat_pump_data['DHW_energy']
@@ -207,6 +219,8 @@ class EnergyHubApp(App):
         consumption_color = (0.84, 0.00, 0.00)
         battery_color = (0.00, 0.75, 0.00)
         solar_color = (0.00, 0.9, 0.00)
+        export_color = (0.58, 0.05, 0.31)
+        import_color = (0.5, 0.5, 0.5)
         colors = ((0.26, 0.46, 0.91),  # car
                   (0.26, 0.84, 0.91),  # immersion
                   (1.00, 0.50, 0.00),  # DHW
@@ -230,51 +244,48 @@ class EnergyHubApp(App):
 
         history_panel = self.root.ids.history.ids.graph_panel
         fig = plt.figure()
-        production_ax, destination_ax, consumption_ax = fig.subplots(1, 3, sharey=True)
-        bars = stacked_bar([0],
-                           zappi_powers['total_energy']/1000, eddi_powers['total_energy']/1000,
-                           heat_pump_data['DHW_energy']/1000, heat_pump_data['heating_energy']/1000,
-                           heat_pump_data['legionnaires_energy']/1000,
-                           heat_pump_data['combined_energy']/1000, heat_pump_data['unknown_energy']/1000,
-                           0,  # battery_grid_charging,
-                           remaining_energy / 1000,
-                           ax=consumption_ax,
-                           total_width=1,
-                           colors=colors, hatch=hatching)
-        labels = []
-        for bar in bars:
-            if bar.datavalues[0] > 0:
-                val = bar.datavalues[0]
-                bar_base = bar[0].xy[1]
-                label_height = bar_base + 0.5*val
-                text = self._bar_label(val*1000)  # convert val back to Wh
-                labels.append(consumption_ax.text(0.6, label_height, text, horizontalalignment='left'))
-        _, upper_lim = consumption_ax.get_ylim()
-        consumption_ax.set_ylim([0, upper_lim*1.1])
-        consumption_ax.set_xlim([-0.5, 1.5])
-        # Label the total
-        consumption_ax.text(0., (solar_data['consumption_energy']/1000)*1.02,
-                            self._bar_label(solar_data["consumption_energy"]),
-                            horizontalalignment='center')
-        plt.xticks([])
-        plt.tight_layout()
-        adjust_text(labels, only_move={'text': 'y'}, autoalign=False, text_from_points=False,
-                    save_steps=False, ha='left')
+        destination_ax, production_ax, consumption_ax = fig.subplots(1, 3, sharey=True)
+        self.labelled_stacked_bar(consumption_ax,
+                                  (solar_consumption_energy,
+                                   battery_solar_charging_energy,
+                                   export_energy,
+                                   ),
+                                  total_value=solar_data['production_energy'],
+                                  colors=(consumption_color, battery_color, export_color)
+                                  )
+        self.labelled_stacked_bar(production_ax,
+                                  (solar_consumption_energy,
+                                   battery_discharge_energy,
+                                   solar_data['purchased_energy'],
+                                   ),
+                                  total_value=total_consumption,
+                                  colors=(consumption_color, battery_color, import_color)
+                                  )
+        self.labelled_stacked_bar(destination_ax,
+                                  (zappi_powers['total_energy'], eddi_powers['total_energy'],
+                                   heat_pump_data['DHW_energy'], heat_pump_data['heating_energy'],
+                                   heat_pump_data['legionnaires_energy'],
+                                   heat_pump_data['combined_energy'], heat_pump_data['unknown_energy'],
+                                   battery_data['charge_from_grid_energy'],
+                                   remaining_energy,
+                                   ),
+                                  total_value=total_consumption,
+                                  colors=colors, hatching=hatching)
         widget = FigureCanvasKivyAgg(fig)
         widget.size_hint_y = None
         widget.height = self.root.width * 0.5
         history_panel.add_widget(widget)
 
         ref_hours = ref_timestamps.total_hours()
-        self._plot_to_history_panel(ref_hours, (car_charge_power/1000,
-                                                immersion_power/1000,
-                                                dhw_power/1000,
-                                                heating_power/1000,
-                                                legionnaires_power/1000,
-                                                combined_power/1000,
-                                                unknown_heat_pump_power/1000,
-                                                battery_grid_charging/1000,
-                                                remaining_load/1000,
+        self._plot_to_history_panel(ref_hours, (car_charge_power,
+                                                immersion_power,
+                                                dhw_power,
+                                                heating_power,
+                                                legionnaires_power,
+                                                combined_power,
+                                                unknown_heat_pump_power,
+                                                battery_grid_charging,
+                                                remaining_load,
                                                 ),
                                     labels=('Car charge', 'Immersion', 'DWH', 'Heating',
                                             'Legionnaires', 'Combined HP', 'Unknown HP',
@@ -283,21 +294,21 @@ class EnergyHubApp(App):
                                     )
         # plt.plot(ref_hours, load_power/1000, linestyle='--')
 
-        self._plot_to_history_panel(ref_hours, (solar_consumption / 1000,
-                                                battery_discharging / 1000,
-                                                import_power / 1000,
+        self._plot_to_history_panel(ref_hours, (solar_consumption,
+                                                battery_discharging,
+                                                import_power,
                                                 ),
                                     labels=('Solar consumption', 'Battery discharging', 'Import'),
-                                    colors=(solar_color, battery_color, consumption_color)
+                                    colors=(solar_color, battery_color, import_color)
                                     )
         # plt.plot(ref_hours, load_power/1000, linestyle='--')
 
-        self._plot_to_history_panel(ref_hours, (solar_consumption/1000,
-                                                battery_solar_charging/1000,
-                                                export_power/1000
+        self._plot_to_history_panel(ref_hours, (solar_consumption,
+                                                battery_solar_charging,
+                                                export_power
                                                 ),
                                     labels=('Consumption', 'Battery charging', 'Export'),
-                                    colors=(consumption_color, battery_color, (0.58, 0.05, 0.31))
+                                    colors=(consumption_color, battery_color, export_color)
                                     )
 
         ax = self._plot_to_history_panel(ref_hours, battery_state,
@@ -305,6 +316,30 @@ class EnergyHubApp(App):
                                          plot_fun=plt.plot,
                                          )
         ax.set_ylim([0, 100])
+
+    def labelled_stacked_bar(self, axes, values, total_value, colors=None, hatching=None):
+        bars = stacked_bar([0], *[v/1000 for v in values],
+                           ax=axes,
+                           total_width=1,
+                           colors=colors, hatch=hatching)
+        labels = []
+        for bar in bars:
+            if bar.datavalues[0] > 0.1:
+                val = bar.datavalues[0]
+                bar_base = bar[0].xy[1]
+                label_height = bar_base + 0.5 * val
+                text = self._bar_label(val * 1000)  # convert val back to Wh
+                labels.append(axes.text(0.6, label_height, text, horizontalalignment='left'))
+        axes.set_ylim([0, (total_value / 1000) * 1.1])
+        axes.set_xlim([-0.5, 1.5])
+        # Label the total
+        axes.text(0., (total_value / 1000) * 1.02,
+                  self._bar_label(total_value),
+                  horizontalalignment='center')
+        plt.xticks([])
+        plt.tight_layout()
+        adjust_text(labels, only_move={'text': 'y'}, autoalign=False, text_from_points=False,
+                    save_steps=False, ha='left', ax=axes)
 
     @staticmethod
     def _bar_label(val):
@@ -318,7 +353,7 @@ class EnergyHubApp(App):
     def _plot_to_history_panel(self, x, y, plot_fun=plt.stackplot, hatch=None, **kwargs):
         history_panel = self.root.ids.history.ids.graph_panel
         fig = plt.figure()
-        plots = plot_fun(x, y, **kwargs)
+        plots = plot_fun(x, [v/1000 for v in y], **kwargs)
         if hatch is not None:
             for stack, hatch in zip(plots, hatch):
                 if hatch is not None:
