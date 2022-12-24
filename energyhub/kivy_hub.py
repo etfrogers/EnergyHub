@@ -135,7 +135,10 @@ class EnergyHubApp(App):
     def build_history_graphs(self, date=None):
         history_panel = self.root.ids.history
         date_picker = self.root.ids.history.ids.history_date
-        history_panel.ids.graph_panel.clear_widgets()
+        graph_panel = history_panel.ids.graph_panel
+        for graph_widget in graph_panel.children:
+            plt.close(graph_widget.figure)
+        graph_panel.clear_widgets()
         if date is None:
             date = date_picker.date
         self.solar_model.get_history_for_date(date)
