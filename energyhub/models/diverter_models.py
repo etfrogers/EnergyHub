@@ -37,20 +37,22 @@ class MyEnergiModel(BaseModel):
         #   status (waiting for export)
         #   charge added
 
+    def _await_refresh(self):
+        if self.connection.state is None:
+            self.get_result('_refresh')
+
     @property
     def zappi(self):
-        if self.connection.state is None and self.thread:
-            self.thread.join()
+        self._await_refresh()
         return self.connection.state.zappi_list()[0]
 
     @property
     def eddi(self):
-        if self.connection.state is None and self.thread:
-            self.thread.join()
+        self._await_refresh()
         return self.connection.state.eddi_list()[0]
 
-    def get_history_for_date(self, date: datetime.date,
-                             device: str = 'Z') -> (np.ndarray, Dict[str, np.ndarray]):
+    def _get_history_for_date(self, date: datetime.date,
+                              device: str = 'Z') -> (np.ndarray, Dict[str, np.ndarray]):
         if device == 'Z':
             serial = self.zappi.sno
         elif device == 'E':

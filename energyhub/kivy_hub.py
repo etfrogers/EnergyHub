@@ -1,5 +1,6 @@
 from threading import Thread
 
+import numpy as np
 from kivy.app import App
 from kivy.clock import Clock, mainthread
 from kivy.properties import NumericProperty, AliasProperty, ObjectProperty
@@ -88,7 +89,7 @@ class EnergyHubApp(App):
         for model in self.models:
             model.connect()
         for model in self.models:
-            model.thread.join()
+            model.get_result('connect')
         self.refresh()
         # build graphs needs to be called after initialisation to get sizes correct
         Clock.schedule_once(lambda x: Thread(self.build_history_graphs()).start(), 0.1)
@@ -137,11 +138,17 @@ class EnergyHubApp(App):
         history_panel.ids.graph_panel.clear_widgets()
         if date is None:
             date = date_picker.date
-        solar_timestamps, solar_data = self.solar_model.get_history_for_date(date)
-        zappi_timestamps, zappi_powers = self.diverter_model.get_history_for_date(date, device='Z')
-        eddi_timestamps, eddi_powers = self.diverter_model.get_history_for_date(date, device='E')
-        heat_pump_timestamps, heat_pump_data = self.heat_pump_model.get_history_for_date(date)
-        battery_timestamps, battery_data = self.solar_model.get_battery_history_for_date(date)
+        self.solar_model.get_history_for_date(date)
+        self.solar_model.get_battery_history_for_date(date)
+        self.diverter_model.get_history_for_date(date, 'Z')
+        self.diverter_model.get_history_for_date(date, 'E')
+        self.heat_pump_model.get_history_for_date(date)
+
+        solar_timestamps, solar_data = self.solar_model.get_result('get_history_for_date', date)
+        zappi_timestamps, zappi_powers = self.diverter_model.get_result('get_history_for_date', date, 'Z')
+        eddi_timestamps, eddi_powers = self.diverter_model.get_result('get_history_for_date', date, 'E')
+        battery_timestamps, battery_data = self.solar_model.get_result('get_battery_history_for_date', date)
+        heat_pump_timestamps, heat_pump_data = self.heat_pump_model.get_result('get_history_for_date', date)
 
         self._plot_history_data(solar_timestamps, solar_data, zappi_timestamps, zappi_powers,
                                 eddi_timestamps, eddi_powers, heat_pump_timestamps, heat_pump_data,
@@ -311,7 +318,7 @@ class EnergyHubApp(App):
                                     colors=(consumption_color, battery_color, export_color)
                                     )
 
-        ax = self._plot_to_history_panel(ref_hours, battery_state,
+        ax = self._plot_to_history_panel(ref_hours, battery_state, convert_powers=False,
                                          # labels=('Battery state', ),
                                          plot_fun=plt.plot,
                                          )
@@ -350,10 +357,13 @@ class EnergyHubApp(App):
         text = f'{val / 1000:.3g}'
         return text
 
-    def _plot_to_history_panel(self, x, y, plot_fun=plt.stackplot, hatch=None, **kwargs):
+    def _plot_to_history_panel(self, x, y, plot_fun=plt.stackplot, hatch=None,
+                               convert_powers: bool = True, **kwargs):
         history_panel = self.root.ids.history.ids.graph_panel
         fig = plt.figure()
-        plots = plot_fun(x, [v/1000 for v in y], **kwargs)
+        if convert_powers:
+            y = np.asarray(y) / 1000
+        plots = plot_fun(x, y, **kwargs)
         if hatch is not None:
             for stack, hatch in zip(plots, hatch):
                 if hatch is not None:

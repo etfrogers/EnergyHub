@@ -71,7 +71,7 @@ class JLRCarModel(BaseModel):
         except ValueError:
             self.car_charge_rate_pc = -100
 
-    def get_history_for_date(self, date: datetime.date) -> (np.ndarray, Dict[str, np.ndarray]):
+    def _get_history_for_date(self, date: datetime.date) -> (np.ndarray, Dict[str, np.ndarray]):
         raise NotImplementedError
 
     def _get_charge_label(self):

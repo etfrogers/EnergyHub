@@ -1,4 +1,5 @@
 import datetime
+import functools
 import ssl
 import textwrap
 from contextlib import AbstractContextManager
@@ -21,6 +22,7 @@ def km_to_miles(km):
 
 def popup_on_error(label: str):
     def decorator(function):
+        @functools.wraps(function)
         def wrapper(*args, **kwargs):
             try:
                 return function(*args, **kwargs)

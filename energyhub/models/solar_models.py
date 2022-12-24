@@ -48,7 +48,7 @@ class SolarEdgeModel(BaseModel):
         self.load = power_flow_data['LOAD']['currentPower'] * conversion_factor
         self.grid_exporting = {'from': 'LOAD', 'to': 'Grid'} in power_flow_data['connections']
 
-    def get_history_for_date(self, date: datetime.date) -> (np.ndarray, Dict[str, np.ndarray]):
+    def _get_history_for_date(self, date: datetime.date) -> (np.ndarray, Dict[str, np.ndarray]):
         data = self.connection.get_power_history_for_day(date)
         data['export'] = data.pop('FeedIn')
         timestamps = data.pop('timestamps').view(TimestampArray)
@@ -60,6 +60,9 @@ class SolarEdgeModel(BaseModel):
         return timestamps, data
 
     def get_battery_history_for_date(self, date: datetime.date) -> (np.ndarray, Dict[str, np.ndarray]):
+        self._run_in_model_thread(self._get_battery_history_for_date, date)
+
+    def _get_battery_history_for_date(self, date: datetime.date) -> (np.ndarray, Dict[str, np.ndarray]):
         data = self.connection.get_battery_history_for_day(date)
         timestamps = data.pop('timestamps').view(TimestampArray)
         return timestamps, data

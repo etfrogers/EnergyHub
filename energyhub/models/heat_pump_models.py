@@ -49,7 +49,7 @@ class EcoforestModel(BaseModel):
             self.heating_power = 0
             self.dhw_power = 0
 
-    def get_history_for_date(self, date: datetime.date) -> (np.ndarray, Dict[str, np.ndarray]):
+    def _get_history_for_date(self, date: datetime.date) -> (np.ndarray, Dict[str, np.ndarray]):
         raw_data = self.connection.get_history_for_date(date)
         timestamps = np.array(raw_data.timestamps).view(TimestampArray)
         # multiply by 1000 to convert native kW to W
