@@ -33,12 +33,26 @@ else:
 
 
 # TODO swipe down to refresh
-# TODO history tab
+#   refresh indication, prevent re-refresh
+#   refresh clock
+#   refresh on resume
+#   more current status
+# TODO save state?
+# TODO caching of myenergi/solar_edge history
+# TODO handle errors on connection
+# TODO settings
+# TODO Fix tab strip width
 # TODO planning tab
+#   weather icons
+#   boost by time, kWh, miles
+#   Days car will be out, and distance
+#   Notification of low prices
+#   Plotting of prices
 # TODO House icon
 # TODO Nest integration
-# TODO Heat pump COP - inst
-# TODO DHW bug?
+# TODO Heat pump COP - inst ++
+# TODO Car status indication
+# TODO kivy logging
 
 
 class IconButton(ButtonBehavior, Image):
