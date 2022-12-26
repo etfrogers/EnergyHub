@@ -62,9 +62,9 @@ class MyEnergiModel(BaseModel):
 
         with NoSSLVerification():
             data = self.connection.get_minute_data(serial, date.timetuple())
+            hour_data = self.connection.get_hour_data(serial, date.timetuple())
         timestamps, powers = history_dict_to_arrays(data)
         mean_voltage_per_hour = {hour: np.mean([d['v1'] for d in data if d.get('hr', 0) == hour]) for hour in range(24)}
-        hour_data = self.connection.get_hour_data(serial, date.timetuple())
         energies = hour_dict_to_energies(hour_data, mean_voltage_per_hour)
         timestamps = timestamps.view(TimestampArray)
         output = powers
