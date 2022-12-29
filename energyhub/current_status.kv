@@ -98,6 +98,8 @@
         on_press: app.refresh()
         pos_hint: {'x': 0.86, 'y': 0.02}
         size_hint: (0.08, 0.08)
+        opacity: 0.5 if app.refreshing else 1
+        disabled: app.refreshing
         allow_stretch: True
     Image:
         source: 'energyhub/resources/Solar_panel_icon.png'

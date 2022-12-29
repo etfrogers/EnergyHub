@@ -11,6 +11,7 @@ from kivy.properties import BooleanProperty
 
 class BaseModel(EventDispatcher, ABC):
     stale = BooleanProperty(True)
+    refreshing = BooleanProperty(False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -41,7 +42,11 @@ class BaseModel(EventDispatcher, ABC):
 
     def refresh(self):
         self.stale = True
+        self.refreshing = True
         self._run_in_model_thread(self._refresh)
+
+    def _finish_refresh(self):
+        self.refreshing = False
 
     @abstractmethod
     def _refresh(self):
@@ -56,6 +61,7 @@ class BaseModel(EventDispatcher, ABC):
     def update_properties(self, data=None):
         self._update_properties(data)
         self.stale = False
+        self._finish_refresh()
 
     def get_history_for_date(self, date: datetime.date, *args) -> (np.ndarray, Dict[str, np.ndarray]):
         self._run_in_model_thread(self._get_history_for_date, date, *args)

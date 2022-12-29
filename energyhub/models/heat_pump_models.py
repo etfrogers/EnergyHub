@@ -28,7 +28,7 @@ class EcoforestModel(BaseModel):
     def _connect(self):
         self.connection = EcoforestClient(self.server, self.port, self.serial_number, self.auth_key)
 
-    @popup_on_error('Ecoforest')
+    @popup_on_error('Ecoforest', cleanup_function=BaseModel._finish_refresh)
     def _refresh(self):
         status = self.connection.get_current_status()
         self.update_properties(status)

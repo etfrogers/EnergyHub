@@ -23,7 +23,7 @@ class MyEnergiModel(BaseModel):
     def _connect(self):
         self.connection = MyEnergiHost(self.username, self.api_key)
 
-    @popup_on_error('MyEnergi')
+    @popup_on_error('MyEnergi', cleanup_function=BaseModel._finish_refresh)
     def _refresh(self):
         with NoSSLVerification():
             self.connection.refresh()

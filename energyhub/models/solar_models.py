@@ -30,6 +30,7 @@ class SolarEdgeModel(BaseModel):
         self.connection = SolarEdgeClient(self.api_key,
                                           self.site_id)
 
+    @popup_on_error('SolarEdge', cleanup_function=BaseModel._finish_refresh)
     def _refresh(self):
         power_flow_data = self.connection.get_power_flow()
         self.update_properties(power_flow_data)

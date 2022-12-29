@@ -49,7 +49,7 @@ class JLRCarModel(BaseModel):
         if refresh_status != 'Successful':
             raise ConnectionError('Could not refresh JLR vehicle')
 
-    @popup_on_error('JLR')
+    @popup_on_error('JLR', cleanup_function=BaseModel._finish_refresh)
     def _refresh(self):
         with NoSSLVerification():
             self._jlr_vehicle_server_refresh()

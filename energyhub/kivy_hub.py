@@ -40,6 +40,7 @@ else:
 # TODO save state?
 # TODO caching of myenergi/solar_edge history
 # TODO handle errors on connection
+# TODO fix history bugs on 29/12, 26/12
 # TODO settings
 # TODO Fix tab strip width
 # TODO planning tab
@@ -76,6 +77,7 @@ class EnergyHubApp(App):
 
     def __init__(self, **kwargs):
         super(EnergyHubApp, self).__init__(**kwargs)
+        self._refreshing = False
         self.solar_model = SolarEdgeModel(config.data['solar-edge']['api-key'],
                                           config.data['solar-edge']['site-id'])
         self.car_model = JLRCarModel(config.data['jlr']['username'],
@@ -88,11 +90,15 @@ class EnergyHubApp(App):
         self.diverter_model = MyEnergiModel(config.data['myenergi']['username'],
                                             config.data['myenergi']['api-key'])
 
-        self.solar_model.bind(load=self.setter('_solar_edge_load'))
-        self.heat_pump_model.bind(heating_power=self.setter('_heating_power'))
-        self.heat_pump_model.bind(dhw_power=self.setter('_dhw_power'))
-        self.diverter_model.bind(immersion_power=self.setter('_immersion_power'))
-        self.diverter_model.bind(car_charger_power=self.setter('_car_charger_power'))
+        self.solar_model.bind(load=self.setter('_solar_edge_load'),
+                              )
+        self.heat_pump_model.bind(heating_power=self.setter('_heating_power'),
+                                  dhw_power=self.setter('_dhw_power'),
+                                  )
+        self.diverter_model.bind(immersion_power=self.setter('_immersion_power'),
+                                 car_charger_power=self.setter('_car_charger_power'),
+                                 )
+
 
     @property
     def models(self):
@@ -107,6 +113,7 @@ class EnergyHubApp(App):
         self.refresh()
         # build graphs needs to be called after initialisation to get sizes correct
         Clock.schedule_once(lambda x: Thread(self.build_history_graphs()).start(), 0.1)
+        Clock.schedule_interval(lambda x: self._check_refreshing(), 1)
 
     def on_pause(self):
         return True
@@ -126,6 +133,16 @@ class EnergyHubApp(App):
                 + self.diverter_model.immersion_power
                 + self.heat_pump_model.dhw_power)
 
+    def _get_refreshing(self):
+        return any(model.refreshing for model in self.models)
+
+    def _set_refreshing(self, value):
+        self._refreshing = value
+        return True
+
+    def _check_refreshing(self):
+        self.refreshing = self._get_refreshing()
+
     remaining_load = AliasProperty(
         _get_remaining_load,
         bind=['_solar_edge_load', '_car_charger_power', '_immersion_power', '_heating_power', '_dhw_power']
@@ -133,6 +150,11 @@ class EnergyHubApp(App):
     _bottom_arms_power = AliasProperty(
         _get_bottom_arms_power,
         bind=['_car_charger_power', '_immersion_power', '_dhw_power']
+    )
+    refreshing = AliasProperty(
+        _get_refreshing,
+        setter=_set_refreshing,
+        cache=False,
     )
 
     @staticmethod
@@ -237,9 +259,6 @@ class EnergyHubApp(App):
                                + eddi_powers['total_energy']
                                )
                             )
-        # remaining_energy = solar_data['export_energy'] - 0
-        # remaining_energy = solar_data['production_energy'] - 0
-        # remaining_energy = solar_data['purchased_energy'] - 0
         consumption_color = (0.84, 0.00, 0.00)
         battery_color = (0.00, 0.75, 0.00)
         solar_color = (0.00, 0.9, 0.00)

@@ -3,7 +3,7 @@ import functools
 import ssl
 import textwrap
 from contextlib import AbstractContextManager
-from typing import Sequence
+from typing import Sequence, Callable
 
 import numpy as np
 from kivy import platform
@@ -20,7 +20,7 @@ def km_to_miles(km):
     return 0.621371 * km
 
 
-def popup_on_error(label: str):
+def popup_on_error(label: str, cleanup_function: Callable = None):
     def decorator(function):
         @functools.wraps(function)
         def wrapper(*args, **kwargs):
@@ -29,6 +29,10 @@ def popup_on_error(label: str):
             except Exception as err:
                 _warning(label + ' API Error', f'{err.__class__.__name__} : {err}')
                 return None
+            finally:
+                if cleanup_function is not None:
+                    self, *_ = args  # assume first arg is self
+                    cleanup_function(self)
         return wrapper
     return decorator
 
