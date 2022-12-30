@@ -92,7 +92,6 @@ class EnergyHubApp(App):
                                  car_charger_power=self.setter('_car_charger_power'),
                                  )
 
-
     @property
     def models(self):
         return [self.solar_model, self.car_model, self.heat_pump_model, self.diverter_model]
@@ -114,6 +113,11 @@ class EnergyHubApp(App):
     def refresh(self):
         for model in self.models:
             model.refresh()
+
+    def check_pull_refresh(self, view):
+        if view.scroll_y < 2 or self.refreshing:
+            return
+        self.refresh()
 
     def _get_remaining_load(self):
         return self.solar_model.load - (self.diverter_model.immersion_power
