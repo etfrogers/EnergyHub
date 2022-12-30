@@ -6,8 +6,6 @@ from kivy.clock import Clock, mainthread
 from kivy.properties import NumericProperty, AliasProperty, ObjectProperty
 from kivy.utils import platform
 
-from kivy.uix.behaviors import ButtonBehavior
-from kivy.uix.image import Image
 from matplotlib import pyplot as plt
 from adjustText import adjust_text
 
@@ -33,7 +31,6 @@ else:
 
 
 # TODO swipe down to refresh
-#   refresh indication, prevent re-refresh
 #   refresh clock
 #   refresh on resume
 #   more current status
@@ -54,10 +51,6 @@ else:
 # TODO Heat pump COP - inst ++
 # TODO Car status indication
 # TODO kivy logging
-
-
-class IconButton(ButtonBehavior, Image):
-    pass
 
 
 class EnergyHubApp(App):

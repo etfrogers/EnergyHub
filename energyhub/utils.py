@@ -7,7 +7,12 @@ from typing import Sequence, Callable
 
 import numpy as np
 from kivy import platform
+from kivy.animation import Animation
 from kivy.clock import mainthread
+from kivy.uix.image import Image
+from kivy.properties import NumericProperty, BooleanProperty
+from kivy.uix.behaviors import ButtonBehavior
+from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 
@@ -82,3 +87,30 @@ def normalise_to_timestamps(ref_ts: TimestampArray, data_ts: TimestampArray, dat
     total_data_in_bin = np.bincount(bin_indices, weights=data, minlength=ref_ts.size)
     mean_data_in_bin = total_data_in_bin / counts_per_bin
     return mean_data_in_bin
+
+
+class IconButton(ButtonBehavior, Image):
+    pass
+
+
+class IconButtonRotatable(FloatLayout, IconButton):
+    angle = NumericProperty(0)
+    rotating = BooleanProperty(False)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.anim = Animation(angle=-360, duration=2)
+        self.anim += Animation(angle=-360, duration=2)
+        self.anim.repeat = True
+        if self.rotating:
+            self.anim.start(self)
+
+    def on_rotating(self, _, value):
+        if value:
+            self.anim.start(self)
+        else:
+            self.anim.stop(self)
+
+    def on_angle(self, item, angle):
+        if angle in (-360, 360):
+            item.angle = 0

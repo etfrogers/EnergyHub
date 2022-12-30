@@ -86,13 +86,24 @@
             rectangle: (self.x+self.width*0.4, self.y+self.height*.95, self.width*0.2, self.height * .05)
 
 
+<IconButtonRotatable>:
+    angle: 0
+    canvas.before:
+        PushMatrix
+        Rotate:
+            angle: root.angle
+            axis: 0, 0, 1
+            origin: root.center
+    canvas.after:
+        PopMatrix
+
 <CurrentStatus@RelativeLayout>:
     canvas.before:
         Color:
             rgb: 1, 1, 1
         Rectangle:
             size: self.size
-    IconButton:
+    IconButtonRotatable:
         source: 'energyhub/resources/icons8-reset-48.png'
         text: 'Refresh'
         on_press: app.refresh()
@@ -100,6 +111,7 @@
         size_hint: (0.08, 0.08)
         opacity: 0.5 if app.refreshing else 1
         disabled: app.refreshing
+        rotating: app.refreshing
         allow_stretch: True
     Image:
         source: 'energyhub/resources/Solar_panel_icon.png'
