@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 import json
 
 import requests
@@ -31,22 +31,28 @@ RATE_URL = f"{TARIFF_URL}/standard-unit-rates/"
 TIME_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 
 
-def get_rates():
-    response = requests.get(RATE_URL)
-    return json.loads(response.text)
+def get_rates(from_: datetime = None, to: datetime = None):
+    params = {}
+    if from_ is not None:
+        params['period_from'] = from_.strftime(TIME_FORMAT)
+    if to is not None:
+        params['period_to'] = to.strftime(TIME_FORMAT)
+    response = requests.get(RATE_URL, params=params)
+    json_data = json.loads(response.text)
+    rates = [RateTimepoint(result) for result in json_data['results']]
+    return rates
 
 
 def main():
-    rate_data = get_rates()
-    rates = [RateTimepoint(result) for result in rate_data['results']]
+    rates = get_rates()
     for rate in rates:
         print(rate)
 
 
 class RateTimepoint:
     def __init__(self, result):
-        self.from_time = datetime.datetime.strptime(result['valid_from'], TIME_FORMAT)
-        self.to_time = datetime.datetime.strptime(result['valid_to'], TIME_FORMAT)
+        self.from_time = datetime.strptime(result['valid_from'], TIME_FORMAT)
+        self.to_time = datetime.strptime(result['valid_to'], TIME_FORMAT)
         self.price_exc_vat = result['value_exc_vat']
         self.price_inc_vat = result['value_inc_vat']
 
