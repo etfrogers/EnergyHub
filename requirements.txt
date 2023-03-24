@@ -1,0 +1,17 @@
+
+# If building kivy from source on MacOS, install dependencies first using homebrew with
+# brew install pkg-config sdl2 sdl2_image sdl2_ttf sdl2_mixer
+# brew install pango
+kivy[base]
+numpy
+matplotlib
+adjustText
+jlrpy
+pyyaml
+
+# to build for android on MacOS
+buildozer==1.4
+Cython==0.29.33
+# brew install openjdk@17
+# sudo ln -sfn /opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk-17.jdk
+# brew install autoconf automake libtool openssl pkg-config
