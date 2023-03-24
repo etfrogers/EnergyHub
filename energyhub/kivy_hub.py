@@ -71,6 +71,7 @@ class EnergyHubApp(App):
     def __init__(self, **kwargs):
         super(EnergyHubApp, self).__init__(**kwargs)
         self._refreshing = False
+        self._refreshing_history = False
         self.solar_model = SolarEdgeModel(config.data['solar-edge']['api-key'],
                                           config.data['solar-edge']['site-id'])
         self.car_model = JLRCarModel(config.data['jlr']['username'],
@@ -119,6 +120,11 @@ class EnergyHubApp(App):
             return
         self.refresh()
 
+    def check_pull_refresh_history(self, view):
+        if view.scroll_y < 2 or self._refreshing_history:
+            return
+        self.build_history_graphs()
+
     def _get_remaining_load(self):
         return self.solar_model.load - (self.diverter_model.immersion_power
                                         + self.diverter_model.car_charger_power
@@ -164,8 +170,12 @@ class EnergyHubApp(App):
                 size = (25 + (70 * power / 5000))
             return size
 
-    @popup_on_error('History fetching')
+    def _end_refreshing_history(self):
+        self._refreshing_history = False
+
+    @popup_on_error('History fetching', _end_refreshing_history)
     def build_history_graphs(self, date=None):
+        self._refreshing_history = True
         history_panel = self.root.ids.history
         date_picker = self.root.ids.history.ids.history_date
         graph_panel = history_panel.ids.graph_panel
@@ -191,7 +201,7 @@ class EnergyHubApp(App):
                                 battery_timestamps, battery_data)
 
     @mainthread
-    @popup_on_error('History plotting')
+    @popup_on_error('History plotting', _end_refreshing_history)
     def _plot_history_data(self, solar_timestamps, solar_data,
                            zappi_timestamps, zappi_powers,
                            eddi_timestamps, eddi_powers,
@@ -235,8 +245,8 @@ class EnergyHubApp(App):
         solar_consumption = solar_production - (export_power + battery_solar_charging)
 
         if battery_data['charge_from_grid_energy'] > 0:
-            total_consumption = solar_data['consumption_energy'] + battery_data['charge_from_grid_energy']
-            assert battery_state[-1] < 11
+            battery_energy_delta = battery_data['stored_energy'][-1] - battery_data['stored_energy'][0]
+            total_consumption = solar_data['consumption_energy'] + battery_energy_delta
         else:
             total_consumption = solar_data['consumption_energy']
         battery_discharge_energy = battery_data['discharge_energy']

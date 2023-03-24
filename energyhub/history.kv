@@ -9,6 +9,8 @@
     ScrollView:
         do_scroll_x: False
         do_scroll_y: True
+        always_overscroll: True
+        on_scroll_y: app.check_pull_refresh_history(self)
         BoxLayout:
             size_hint_y: None
             height: self.minimum_height
