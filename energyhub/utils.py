@@ -114,3 +114,9 @@ class IconButtonRotatable(FloatLayout, IconButton):
     def on_angle(self, item, angle):
         if angle in (-360, 360):
             item.angle = 0
+
+
+def day_start_end_times(day: datetime.date):
+    start = datetime.datetime.combine(day, datetime.time(0))
+    end = start + datetime.timedelta(days=1)
+    return start, end
