@@ -1,8 +1,7 @@
 import datetime
-import inspect
 import logging
-import os.path
 import sys
+import zoneinfo
 from typing import List
 
 import yaml
@@ -21,6 +20,7 @@ class Config:
         # self.solar_edge_account_id = yaml_data['solar-edge-account-id']
         # self.storage_profile_name = yaml_data['storage-profile-name']
         self.site_location = yaml_data['site-location']
+        self.timezone = zoneinfo.ZoneInfo(yaml_data['site-location']['timezone'])
         self.peak_time = yaml_data['peak-time']
         self.overnight_usage = yaml_data['overnight-usage']
         self.minimum_battery_level = yaml_data['minimum-battery-level']
