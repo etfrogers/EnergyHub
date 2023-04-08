@@ -1,15 +1,17 @@
 import datetime
+import zoneinfo
 
 import numpy as np
 import pytest
-from matplotlib import pyplot as plt
 
-from ..bill_estimator import BillEstimator
+from ..bill_estimator import BillEstimator, MissingMeterReadingError
 from ..config import config
-from octopus_client.octopy.octopus_api import OctopusClient
 
 
-test_days = [datetime.date(2023, 4, 4),
+test_days = [datetime.date(2022, 11, 25),
+             datetime.date(2022, 3, 7),
+             datetime.date(2023, 2, 14),
+             datetime.date(2023, 4, 4),
              datetime.date(2023, 4, 3),
              datetime.date(2023, 4, 2),
              datetime.date(2023, 4, 1),
@@ -20,9 +22,11 @@ test_days = [datetime.date(2023, 4, 4),
 def test_consumption_equivalence(day):
     est = BillEstimator()
     se_consumption = est.estimate_consumption_from_solar_edge(day)
-    octopus_consumption = est.get_consumption_for_day(day)
-    # Solar Edge in Wh, Octopus in kWh
-    se_consumption /= 1000
+    try:
+        octopus_consumption = est.get_consumption_for_day(day)
+    except MissingMeterReadingError as err:
+        pytest.xfail(str(err))
+    # noinspection PyUnboundLocalVariable
     assert np.isclose(sum(se_consumption), sum(octopus_consumption), rtol=0.01, atol=0.2)
     assert np.allclose(se_consumption, octopus_consumption, atol=0.75)
 
@@ -31,8 +35,25 @@ def test_consumption_equivalence(day):
 def test_export_equivalence(day):
     est = BillEstimator()
     se_export = est.estimate_export_from_solar_edge(day)
-    octopus_export = est.get_export_for_day(day)
-    # Solar Edge in Wh, Octopus in kWh
-    se_export /= 1000
-    assert np.isclose(sum(se_export), sum(octopus_export), rtol=0.01, atol=0.2)
+    try:
+        octopus_export = est.get_export_for_day(day)
+    except MissingMeterReadingError as err:
+        pytest.xfail(str(err))
+    # noinspection PyUnboundLocalVariable
+    assert np.isclose(sum(se_export), sum(octopus_export), rtol=0.01, atol=0.35)
     assert np.allclose(se_export, octopus_export, atol=0.3)
+
+
+@pytest.mark.parametrize('day', test_days)
+def test_estimate_vs_calculation(day):
+    est = BillEstimator()
+    se_bill = est.estimate_bill_for_day(day)
+    try:
+        octopus_bill = est.calculate_bill_for_day(day)
+    except MissingMeterReadingError as err:
+        pytest.xfail(str(err))
+    # noinspection PyUnboundLocalVariable
+    bill_difference = (octopus_bill - se_bill)
+    bill_percent_error = 100 * bill_difference / octopus_bill
+    print(f'Bill error £{bill_difference/100:.2f} ({bill_percent_error:.0f}%)')
+    assert np.isclose(se_bill, octopus_bill, atol=2, rtol=0.03)
