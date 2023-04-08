@@ -1,7 +1,7 @@
 from builtins import AttributeError
 from collections import defaultdict
 from datetime import datetime, timedelta, date, time
-from functools import cached_property
+from functools import cached_property, lru_cache
 from typing import Dict, Optional
 
 import numpy as np
@@ -100,26 +100,25 @@ class BillEstimate:
         # Note that Solar Edge returns Wh, and we convert to kWh
         return self._values_to_billing_periods(ts, values) / 1000
 
-    @property
-    def estimated_bill(self) -> float:
-        return np.sum(self.estimated_itemised_bill)
+    def estimated_bill(self, inc_vat: bool = True) -> float:
+        # noinspection PyTypeChecker
+        return np.sum(self.estimated_itemised_bill(inc_vat))
 
-    @property
-    def calculated_bill(self) -> float:
-        return np.sum(self.calculated_itemised_bill)
+    def calculated_bill(self, inc_vat: bool = True) -> float:
+        # noinspection PyTypeChecker
+        return np.sum(self.calculated_itemised_bill(inc_vat))
 
-    @property
-    def estimated_itemised_bill(self) -> np.ndarray:
-        return self.rates * self.consumption_estimate
+    def estimated_itemised_bill(self, inc_vat: bool = True) -> np.ndarray:
+        return self.rates(inc_vat) * self.consumption_estimate
 
-    @property
-    def calculated_itemised_bill(self) -> np.ndarray:
-        return self.rates * self.consumption
+    def calculated_itemised_bill(self, inc_vat: bool = True) -> np.ndarray:
+        return self.rates(inc_vat) * self.consumption
 
-    @cached_property
-    def rates(self) -> np.ndarray:
+    @lru_cache
+    def rates(self, inc_vat: bool = True) -> np.ndarray:
         datapoints = self.rate_response
-        return self.meter_points_to_array(datapoints, 'price_inc_vat')
+        var_name = 'price_inc_vat' if inc_vat else 'price_exc_vat'
+        return self.meter_points_to_array(datapoints, var_name)
 
     def _values_to_billing_periods(self, timestamps, values):
         if not len(timestamps) == len(values):
@@ -192,11 +191,11 @@ class BillEstimator:
     def get_export_for_day(self, day: date) -> np.ndarray:
         return self[day].export
 
-    def calculate_bill_for_day(self, day):
-        return self[day].calculated_bill
+    def calculate_bill_for_day(self, day: date, inc_vat: bool):
+        return self[day].calculated_bill(inc_vat)
 
-    def estimate_bill_for_day(self, day):
-        return self[day].estimated_bill
+    def estimate_bill_for_day(self, day: date, inc_vat: bool):
+        return self[day].estimated_bill(inc_vat)
 
     def __getitem__(self, item: date) -> BillEstimate:
         estimate = self._cache[item]

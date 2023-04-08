@@ -45,11 +45,12 @@ def test_export_equivalence(day):
 
 
 @pytest.mark.parametrize('day', test_days)
-def test_estimate_vs_calculation(day):
+@pytest.mark.parametrize('inc_vat', [True, False])
+def test_estimate_vs_calculation(day, inc_vat):
     est = BillEstimator()
-    se_bill = est.estimate_bill_for_day(day)
+    se_bill = est.estimate_bill_for_day(day, inc_vat)
     try:
-        octopus_bill = est.calculate_bill_for_day(day)
+        octopus_bill = est.calculate_bill_for_day(day, inc_vat)
     except MissingMeterReadingError as err:
         pytest.xfail(str(err))
     # noinspection PyUnboundLocalVariable
