@@ -25,10 +25,15 @@ REGION_CODES = {
 
 BASE_URL = "https://api.octopus.energy"
 PRODUCT_CODE = "AGILE-18-02-21"
+EXPORT_PRODUCT_CODE = "AGILE-OUTGOING-19-05-13"
 REGION_CODE = 'H'  # Southern England
 TARIFF_CODE = f"E-1R-{PRODUCT_CODE}-{REGION_CODE}"
+EXPORT_TARIFF_CODE = f"E-1R-{EXPORT_PRODUCT_CODE}-{REGION_CODE}"
 TARIFF_URL = f"{BASE_URL}/v1/products/{PRODUCT_CODE}/electricity-tariffs/{TARIFF_CODE}"
 RATE_URL = f"{TARIFF_URL}/standard-unit-rates/"
+EXPORT_TARIFF_URL = f"{BASE_URL}/v1/products/{EXPORT_PRODUCT_CODE}/electricity-tariffs/{EXPORT_TARIFF_CODE}"
+EXPORT_RATE_URL = f"{EXPORT_TARIFF_URL}/standard-unit-rates/"
+
 TIME_FORMAT = '%Y-%m-%dT%H:%M:%S%z'
 METER_CONSUMPTION_URL = BASE_URL + '/v1/electricity-meter-points/{mpan}/meters/{serial_number}/consumption/'
 
@@ -109,8 +114,17 @@ class OctopusClient:
         rates = [RateTimepoint(result) for result in data['results']]
         return rates
 
+    def get_export_rates(self, from_: datetime = None, to: datetime = None) -> List[RateTimepoint]:
+        data = self.api_call(EXPORT_RATE_URL, from_, to)
+        rates = [RateTimepoint(result) for result in data['results']]
+        return rates
+
     def get_rates_for_day(self, day: date) -> List[RateTimepoint]:
         return self.get_rates(*day_start_end_times(day))
+
+    def get_export_rates_for_day(self, day: date) -> List[RateTimepoint]:
+        return self.get_export_rates(*day_start_end_times(day))
+
 
     def get_consumption(self, from_: datetime = None, to: datetime = None) -> List[MeterTimepoint]:
         data = self.api_call(self.consumption_meter_url, from_, to)

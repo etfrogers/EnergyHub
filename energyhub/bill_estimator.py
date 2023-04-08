@@ -65,6 +65,10 @@ class BillEstimate:
         return self.octopus_client.get_rates_for_day(self.day)
 
     @cached_property
+    def export_rate_response(self):
+        return self.octopus_client.get_export_rates_for_day(self.day)
+
+    @cached_property
     def billing_periods(self) -> np.ndarray:
         day_start: datetime = datetime.combine(self.day, time(0), tzinfo=config.timezone)
         return np.array([
@@ -114,9 +118,29 @@ class BillEstimate:
     def calculated_itemised_bill(self, inc_vat: bool = True) -> np.ndarray:
         return self.rates(inc_vat) * self.consumption
 
+    def estimated_credit(self, inc_vat: bool = True) -> float:
+        # noinspection PyTypeChecker
+        return np.sum(self.estimated_itemised_credit(inc_vat))
+
+    def calculated_credit(self, inc_vat: bool = True) -> float:
+        # noinspection PyTypeChecker
+        return np.sum(self.calculated_itemised_credit(inc_vat))
+
+    def estimated_itemised_credit(self, inc_vat: bool = True) -> np.ndarray:
+        return self.export_rates(inc_vat) * self.export_estimate
+
+    def calculated_itemised_credit(self, inc_vat: bool = True) -> np.ndarray:
+        return self.export_rates(inc_vat) * self.export
+
     @lru_cache
     def rates(self, inc_vat: bool = True) -> np.ndarray:
         datapoints = self.rate_response
+        var_name = 'price_inc_vat' if inc_vat else 'price_exc_vat'
+        return self.meter_points_to_array(datapoints, var_name)
+
+    @lru_cache
+    def export_rates(self, inc_vat: bool = True) -> np.ndarray:
+        datapoints = self.export_rate_response
         var_name = 'price_inc_vat' if inc_vat else 'price_exc_vat'
         return self.meter_points_to_array(datapoints, var_name)
 
@@ -196,6 +220,13 @@ class BillEstimator:
 
     def estimate_bill_for_day(self, day: date, inc_vat: bool):
         return self[day].estimated_bill(inc_vat)
+
+    def calculate_credit_for_day(self, day: date, inc_vat: bool):
+        return self[day].calculated_credit(inc_vat)
+
+    def estimate_credit_for_day(self, day: date, inc_vat: bool):
+        return self[day].estimated_credit(inc_vat)
+
 
     def __getitem__(self, item: date) -> BillEstimate:
         estimate = self._cache[item]
