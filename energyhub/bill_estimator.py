@@ -6,6 +6,7 @@ from typing import Dict, Optional
 
 import numpy as np
 
+from ecoforest.ecoforest_processor import date_range
 from energyhub.config import config
 from energyhub.utils import day_start_end_times
 from octopus_client.octopy.octopus_api import OctopusClient
@@ -206,11 +207,17 @@ class BillEstimator:
     def estimate_consumption_from_solar_edge(self, day: date) -> np.ndarray:
         return self[day].consumption_estimate
 
+    def estimate_consumption_for_period(self, start: date, end: date) -> np.ndarray:
+        return sum([self[day].consumption_estimate for day in date_range(start, end)])
+
     def estimate_export_from_solar_edge(self, day: date) -> np.ndarray:
         return self[day].export_estimate
 
     def get_consumption_for_day(self, day: date) -> np.ndarray:
         return self[day].consumption
+
+    def get_consumption_for_period(self, start: date, end: date) -> np.ndarray:
+        return sum([self[day].consumption for day in date_range(start, end)])
 
     def get_export_for_day(self, day: date) -> np.ndarray:
         return self[day].export
@@ -218,8 +225,14 @@ class BillEstimator:
     def calculate_bill_for_day(self, day: date, inc_vat: bool):
         return self[day].calculated_bill(inc_vat)
 
+    def calculate_bill_for_period(self, start: date, end: date, inc_vat: bool):
+        return sum([self[day].calculated_bill(inc_vat) for day in date_range(start, end)])
+
     def estimate_bill_for_day(self, day: date, inc_vat: bool):
         return self[day].estimated_bill(inc_vat)
+
+    def estimate_bill_for_period(self, start: date, end: date, inc_vat: bool):
+        return sum([self[day].estimated_bill(inc_vat) for day in date_range(start, end)])
 
     def calculate_credit_for_day(self, day: date, inc_vat: bool):
         return self[day].calculated_credit(inc_vat)

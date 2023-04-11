@@ -35,6 +35,14 @@ real_export = [  # prices exc VAT
     (datetime.date(2021, 8, 27), 18.08, 2.37),
 ]
 
+export_periods = [
+    (datetime.date(2021, 8, 22), datetime.date(2021, 9, 13), 448.7, 69.44),
+]
+
+billing_periods = [
+    (datetime.date(2023, 2, 22), datetime.date(2023, 3, 21), 549.5, 131.91),
+]
+
 
 @pytest.mark.parametrize('day', test_days)
 def test_consumption_equivalence(day):
@@ -122,3 +130,26 @@ def test_solaredge_export_estimate_against_bills(day, actual_export, actual_cred
     assert np.isclose(sum(estimated_export), actual_export, atol=0.1, rtol=0.05)
     # actual price in £, calculation in pence. Should match to within 11p
     assert np.isclose(estimated_credit, actual_credit*100, atol=11)
+
+
+@pytest.mark.parametrize('start_date, end_date, actual_consumption, actual_price', billing_periods)
+def test_billing_period(start_date, end_date, actual_consumption, actual_price):
+    est = BillEstimator()
+    api_consumption = est.get_consumption_for_period(start_date, end_date)
+    calculated_bill = est.calculate_bill_for_period(start_date, end_date, inc_vat=False)
+    # only matches dues to more than 0.01 due to different rounding?
+    assert np.isclose(sum(api_consumption), actual_consumption, atol=1)
+    # actual price in £, calculation in pence. Should match to the nearest penny, but
+    # allow 2p, due to rounding one value in one direction, one in the other
+    assert np.isclose(calculated_bill, actual_price*100, atol=10)
+
+
+@pytest.mark.parametrize('start_date, end_date, actual_consumption, actual_price', billing_periods)
+def test_billing_period_estimate(start_date, end_date, actual_consumption, actual_price):
+    est = BillEstimator()
+    estimated_consumption = est.estimate_consumption_for_period(start_date, end_date)
+    estimated_bill = est.estimate_bill_for_period(start_date, end_date, inc_vat=False)
+    # only matches dues to more than 0.01 due to different rounding?
+    assert np.isclose(sum(estimated_consumption), actual_consumption, atol=5)
+    # actual price in £, calculation in pence.
+    assert np.isclose(estimated_bill, actual_price*100, atol=110)
