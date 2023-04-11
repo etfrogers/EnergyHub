@@ -44,12 +44,16 @@ billing_periods = [
 ]
 
 
+@pytest.fixture(scope='session')
+def estimator():
+    return BillEstimator()
+
+
 @pytest.mark.parametrize('day', test_days)
-def test_consumption_equivalence(day):
-    est = BillEstimator()
-    se_consumption = est.estimate_consumption_from_solar_edge(day)
+def test_consumption_equivalence(estimator, day):
+    se_consumption = estimator.estimate_consumption_from_solar_edge(day)
     try:
-        octopus_consumption = est.get_consumption_for_day(day)
+        octopus_consumption = estimator.get_consumption_for_day(day)
     except MissingMeterReadingError as err:
         pytest.xfail(str(err))
     # noinspection PyUnboundLocalVariable
@@ -58,11 +62,10 @@ def test_consumption_equivalence(day):
 
 
 @pytest.mark.parametrize('day', test_days)
-def test_export_equivalence(day):
-    est = BillEstimator()
-    se_export = est.estimate_export_from_solar_edge(day)
+def test_export_equivalence(estimator, day):
+    se_export = estimator.estimate_export_from_solar_edge(day)
     try:
-        octopus_export = est.get_export_for_day(day)
+        octopus_export = estimator.get_export_for_day(day)
     except MissingMeterReadingError as err:
         pytest.xfail(str(err))
     # noinspection PyUnboundLocalVariable
@@ -72,11 +75,10 @@ def test_export_equivalence(day):
 
 @pytest.mark.parametrize('day', test_days)
 @pytest.mark.parametrize('inc_vat', [True, False])
-def test_estimate_vs_calculation(day, inc_vat):
-    est = BillEstimator()
-    se_bill = est.estimate_bill_for_day(day, inc_vat)
+def test_estimate_vs_calculation(estimator, day, inc_vat):
+    se_bill = estimator.estimate_bill_for_day(day, inc_vat)
     try:
-        octopus_bill = est.calculate_bill_for_day(day, inc_vat)
+        octopus_bill = estimator.calculate_bill_for_day(day, inc_vat)
     except MissingMeterReadingError as err:
         pytest.xfail(str(err))
     # noinspection PyUnboundLocalVariable
@@ -87,10 +89,9 @@ def test_estimate_vs_calculation(day, inc_vat):
 
 
 @pytest.mark.parametrize('day, actual_consumption, actual_price', real_bills)
-def test_api_against_bills(day, actual_consumption, actual_price):
-    est = BillEstimator()
-    api_consumption = est.get_consumption_for_day(day)
-    calculated_bill = est.calculate_bill_for_day(day, inc_vat=False)
+def test_api_against_bills(estimator, day, actual_consumption, actual_price):
+    api_consumption = estimator.get_consumption_for_day(day)
+    calculated_bill = estimator.calculate_bill_for_day(day, inc_vat=False)
     # only matches dues to more than 0.01 due to different rounding?
     assert np.isclose(sum(api_consumption), actual_consumption, atol=0.05)
     # actual price in £, calculation in pence. Should match to the nearest penny, but
@@ -99,10 +100,9 @@ def test_api_against_bills(day, actual_consumption, actual_price):
 
 
 @pytest.mark.parametrize('day, actual_consumption, actual_price', real_bills)
-def test_solaredge_estimate_against_bills(day, actual_consumption, actual_price):
-    est = BillEstimator()
-    estimated_consumption = est.estimate_consumption_from_solar_edge(day)
-    estimated_bill = est.estimate_bill_for_day(day, inc_vat=False)
+def test_solaredge_estimate_against_bills(estimator, day, actual_consumption, actual_price):
+    estimated_consumption = estimator.estimate_consumption_from_solar_edge(day)
+    estimated_bill = estimator.estimate_bill_for_day(day, inc_vat=False)
     # match to 0.1 kWh?
     assert np.isclose(sum(estimated_consumption), actual_consumption, atol=0.1, rtol=0.05)
     # actual price in £, calculation in pence. Should match to within 11p
@@ -110,10 +110,9 @@ def test_solaredge_estimate_against_bills(day, actual_consumption, actual_price)
 
 
 @pytest.mark.parametrize('day, actual_export, actual_credit', real_export)
-def test_api_export_against_bills(day, actual_export, actual_credit):
-    est = BillEstimator()
-    api_export = est.get_export_for_day(day)
-    calculated_credit = est.calculate_credit_for_day(day, inc_vat=False)
+def test_api_export_against_bills(estimator, day, actual_export, actual_credit):
+    api_export = estimator.get_export_for_day(day)
+    calculated_credit = estimator.calculate_credit_for_day(day, inc_vat=False)
     # only matches dues to more than 0.01 due to different rounding?
     assert np.isclose(sum(api_export), actual_export, atol=0.15)
     # actual price in £, calculation in pence. Should match to the nearest penny, but
@@ -122,10 +121,9 @@ def test_api_export_against_bills(day, actual_export, actual_credit):
 
 
 @pytest.mark.parametrize('day, actual_export, actual_credit', real_export)
-def test_solaredge_export_estimate_against_bills(day, actual_export, actual_credit):
-    est = BillEstimator()
-    estimated_export = est.estimate_export_from_solar_edge(day)
-    estimated_credit = est.estimate_credit_for_day(day, inc_vat=False)
+def test_solaredge_export_estimate_against_bills(estimator, day, actual_export, actual_credit):
+    estimated_export = estimator.estimate_export_from_solar_edge(day)
+    estimated_credit = estimator.estimate_credit_for_day(day, inc_vat=False)
     # match to 0.1 kWh or 5%
     assert np.isclose(sum(estimated_export), actual_export, atol=0.1, rtol=0.05)
     # actual price in £, calculation in pence. Should match to within 11p
@@ -133,10 +131,9 @@ def test_solaredge_export_estimate_against_bills(day, actual_export, actual_cred
 
 
 @pytest.mark.parametrize('start_date, end_date, actual_consumption, actual_price', billing_periods)
-def test_billing_period(start_date, end_date, actual_consumption, actual_price):
-    est = BillEstimator()
-    api_consumption = est.get_consumption_for_period(start_date, end_date)
-    calculated_bill = est.calculate_bill_for_period(start_date, end_date, inc_vat=False)
+def test_billing_period(estimator, start_date, end_date, actual_consumption, actual_price):
+    api_consumption = estimator.get_consumption_for_period(start_date, end_date)
+    calculated_bill = estimator.calculate_bill_for_period(start_date, end_date, inc_vat=False)
     # only matches dues to more than 0.01 due to different rounding?
     assert np.isclose(sum(api_consumption), actual_consumption, atol=1)
     # actual price in £, calculation in pence. Should match to the nearest penny, but
@@ -145,10 +142,9 @@ def test_billing_period(start_date, end_date, actual_consumption, actual_price):
 
 
 @pytest.mark.parametrize('start_date, end_date, actual_consumption, actual_price', billing_periods)
-def test_billing_period_estimate(start_date, end_date, actual_consumption, actual_price):
-    est = BillEstimator()
-    estimated_consumption = est.estimate_consumption_for_period(start_date, end_date)
-    estimated_bill = est.estimate_bill_for_period(start_date, end_date, inc_vat=False)
+def test_billing_period_estimate(estimator, start_date, end_date, actual_consumption, actual_price):
+    estimated_consumption = estimator.estimate_consumption_for_period(start_date, end_date)
+    estimated_bill = estimator.estimate_bill_for_period(start_date, end_date, inc_vat=False)
     # only matches dues to more than 0.01 due to different rounding?
     assert np.isclose(sum(estimated_consumption), actual_consumption, atol=5)
     # actual price in £, calculation in pence.
