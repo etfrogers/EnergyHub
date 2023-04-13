@@ -125,7 +125,6 @@ class OctopusClient:
     def get_export_rates_for_day(self, day: date) -> List[RateTimepoint]:
         return self.get_export_rates(*day_start_end_times(day))
 
-
     def get_consumption(self, from_: datetime = None, to: datetime = None) -> List[MeterTimepoint]:
         data = self.api_call(self.consumption_meter_url, from_, to)
         return [MeterTimepoint(result) for result in data['results']]
@@ -140,8 +139,6 @@ class OctopusClient:
     @staticmethod
     def call_func_for_day(day: date, func: callable):
         start, end = day_start_end_times(day)
-        # period is inclusive, so if we don't subtract one second, we ge the frst period of the next day too.
-        end = end - timedelta(seconds=1)
         data = func(start, end)
         return data
 
