@@ -24,8 +24,8 @@ from energyhub.config import config
 
 from kivy.core.window import Window
 if platform != 'android':
-    Window.size = (1440/5, 3216/5)
-    plt.rcParams['font.size'] = 12
+    Window.size = (1440/4, 3216/4)
+    plt.rcParams['font.size'] = 8
 else:
     plt.rcParams['font.size'] = 24
 
