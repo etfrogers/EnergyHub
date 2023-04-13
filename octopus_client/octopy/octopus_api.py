@@ -4,7 +4,7 @@ from typing import List
 
 import requests
 
-from energyhub.utils import day_start_end_times
+from SolarEdgeClient.solaredge.solar_edge_api import day_start_end_times
 
 REGION_CODES = {
     'A': 'Eastern England',

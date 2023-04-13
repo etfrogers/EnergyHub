@@ -16,8 +16,6 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 
-from energyhub.config import config
-
 
 def list_to_dict(list_of_kv_pairs):
     return {v['key']: v['value'] for v in list_of_kv_pairs}
@@ -116,9 +114,3 @@ class IconButtonRotatable(FloatLayout, IconButton):
     def on_angle(self, item, angle):
         if angle in (-360, 360):
             item.angle = 0
-
-
-def day_start_end_times(day: datetime.date):
-    start = datetime.datetime.combine(day, datetime.time(0), tzinfo=config.timezone)
-    end = start + datetime.timedelta(days=1)
-    return start, end

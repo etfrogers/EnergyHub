@@ -8,7 +8,7 @@ import numpy as np
 
 from ecoforest.ecoforest_processor import date_range
 from energyhub.config import config
-from energyhub.utils import day_start_end_times
+from SolarEdgeClient.solaredge.solar_edge_api import day_start_end_times
 from octopus_client.octopy.octopus_api import OctopusClient
 from solaredge import SolarEdgeClient
 
