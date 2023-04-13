@@ -411,7 +411,8 @@ class EnergyHubApp(App):
             for stack, hatch in zip(plots, hatch):
                 if hatch is not None:
                     stack.set_hatch(hatch)
-        plt.legend()
+        if 'labels' in kwargs:
+            plt.legend()
         plt.xticks([0, 6, 12, 18, 24])
         plt.tight_layout()
         widget = FigureCanvasKivyAgg(fig)
