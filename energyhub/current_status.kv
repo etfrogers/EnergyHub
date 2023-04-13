@@ -1,5 +1,5 @@
 #:import Arrow kivy_arrow.arrow.Arrow
-
+#:include energyhub/utils.kv
 
 #:set non_eco (1, 0.5, 0, 1)
 #:set inactive (0.7, 0.7, 0.7, 1)
@@ -263,10 +263,7 @@
         pos_hint: {'y': 0.12, 'x': 0.45}
         size_hint: (0.1, 0.05)
 
-<CurrentStatus@ScrollView>
-    do_scroll_x: False
-    do_scroll_y: True
-    always_overscroll: True
+<CurrentStatus@RefreshOnScrollContainer>
     on_scroll_y: app.check_pull_refresh(self)
     CurrentStatusInner:
         height: root.height*1.01

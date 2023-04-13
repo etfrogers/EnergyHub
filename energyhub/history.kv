@@ -1,4 +1,5 @@
 #:import DatePicker energyhub.datepicker.DatePicker
+#:include energyhub/utils.kv
 
 <HistoryPanel@BoxLayout>:
     orientation: 'vertical'
@@ -6,10 +7,7 @@
         id: history_date
         on_date: app.build_history_graphs(self.date)
         size_hint_y: None
-    ScrollView:
-        do_scroll_x: False
-        do_scroll_y: True
-        always_overscroll: True
+    RefreshOnScrollContainer:
         on_scroll_y: app.check_pull_refresh_history(self)
         BoxLayout:
             size_hint_y: None

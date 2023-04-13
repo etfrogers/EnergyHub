@@ -121,7 +121,7 @@ class EnergyHubApp(App):
         self.refresh()
 
     def check_pull_refresh_history(self, view):
-        if view.scroll_y < 2 or self._refreshing_history:
+        if view.scroll_y < 1 or self._refreshing_history:
             return
         self.build_history_graphs()
 
