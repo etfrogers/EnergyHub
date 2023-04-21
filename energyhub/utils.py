@@ -50,8 +50,9 @@ def _warning(title: str, msg: str):
 
 
 def timestamps_to_hours(times: Sequence[datetime.datetime]):
-    date = times[0].date()
-    midnight = datetime.datetime.combine(date, datetime.time(0))
+    ref_time = times[0]
+    date = ref_time.date()
+    midnight = datetime.datetime.combine(date, datetime.time(0, tzinfo=ref_time.tzinfo))
     return np.array([(t - midnight).total_seconds() / (60 * 60) for t in times])
 
 
@@ -86,6 +87,7 @@ def normalise_to_timestamps(ref_ts: TimestampArray, data_ts: TimestampArray, dat
     counts_per_bin = np.bincount(bin_indices, minlength=ref_ts.size)
     total_data_in_bin = np.bincount(bin_indices, weights=data, minlength=ref_ts.size)
     mean_data_in_bin = total_data_in_bin / counts_per_bin
+    mean_data_in_bin[counts_per_bin == 0] = 0  # replace nans with zeros
     return mean_data_in_bin
 
 

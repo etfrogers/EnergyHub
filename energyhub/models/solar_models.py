@@ -20,15 +20,17 @@ class SolarEdgeModel(BaseModel):
     load = NumericProperty(0.5)
     battery_state = StringProperty('Charging')
 
-    def __init__(self, api_key, site_id, *args, **kwargs):
+    def __init__(self, api_key, site_id, timezone, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.api_key = api_key
         self.site_id = site_id
+        self.timezone = timezone
 
     @popup_on_error('Error initialising SolarEdge')
     def _connect(self):
         self.connection = SolarEdgeClient(self.api_key,
-                                          self.site_id)
+                                          self.site_id,
+                                          self.timezone)
 
     @popup_on_error('SolarEdge', cleanup_function=BaseModel._finish_refresh)
     def _refresh(self):

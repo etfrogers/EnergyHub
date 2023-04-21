@@ -1,4 +1,5 @@
 import datetime
+import zoneinfo
 from typing import List, Dict
 
 import numpy as np
@@ -14,10 +15,11 @@ class MyEnergiModel(BaseModel):
     immersion_power = NumericProperty(0)
     car_charger_power = NumericProperty(0)
 
-    def __init__(self, username, api_key, **kwargs):
+    def __init__(self, username, api_key, timezone, **kwargs):
         super().__init__(**kwargs)
         self.username = username
         self.api_key = api_key
+        self.timezone = timezone
 
     @popup_on_error('Error initialising MyEnergi')
     def _connect(self):
@@ -63,7 +65,7 @@ class MyEnergiModel(BaseModel):
         with NoSSLVerification():
             data = self.connection.get_minute_data(serial, date.timetuple())
             hour_data = self.connection.get_hour_data(serial, date.timetuple())
-        timestamps, powers = history_dict_to_arrays(data)
+        timestamps, powers = history_dict_to_arrays(data, self.timezone)
         mean_voltage_per_hour = {hour: np.mean([d['v1'] for d in data if d.get('hr', 0) == hour]) for hour in range(24)}
         energies = hour_dict_to_energies(hour_data, mean_voltage_per_hour)
         timestamps = timestamps.view(TimestampArray)
@@ -91,7 +93,7 @@ def hour_dict_to_energies(hour_data: List[Dict], mean_voltage_per_hour: Dict):
     return energies
 
 
-def history_dict_to_arrays(zappi_data: List[Dict]):
+def history_dict_to_arrays(zappi_data: List[Dict], timezone=None):
     timestamps = []
     powers = {}
     for name in MY_ENERGI_NAME_MAPPING:
@@ -104,7 +106,8 @@ def history_dict_to_arrays(zappi_data: List[Dict]):
                                       day=datapoint['dom'],
                                       hour=datapoint.get('hr', 0),  # hr may not be present
                                       minute=datapoint.get('min', 0),  # min may not be present
-                                      )
+                                      tzinfo=zoneinfo.ZoneInfo('UTC'))
+        timestamp = timestamp.astimezone(timezone)
         timestamps.append(timestamp)
         volts.append(datapoint['v1'])
         for name, myenergi_name in MY_ENERGI_NAME_MAPPING.items():

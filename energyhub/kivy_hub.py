@@ -73,16 +73,19 @@ class EnergyHubApp(App):
         self._refreshing = False
         self._refreshing_history = False
         self.solar_model = SolarEdgeModel(config.data['solar-edge']['api-key'],
-                                          config.data['solar-edge']['site-id'])
+                                          config.data['solar-edge']['site-id'],
+                                          config.timezone)
         self.car_model = JLRCarModel(config.data['jlr']['username'],
                                      config.data['jlr']['password'],
                                      config.data['jlr'].get('vin', None))
         self.heat_pump_model = EcoforestModel(config.data['ecoforest']['server'],
                                               config.data['ecoforest']['port'],
                                               config.data['ecoforest']['serial-number'],
-                                              config.data['ecoforest']['auth-key'])
+                                              config.data['ecoforest']['auth-key'],
+                                              timezone=config.timezone)
         self.diverter_model = MyEnergiModel(config.data['myenergi']['username'],
-                                            config.data['myenergi']['api-key'])
+                                            config.data['myenergi']['api-key'],
+                                            config.timezone)
 
         self.solar_model.bind(load=self.setter('_solar_edge_load'),
                               )

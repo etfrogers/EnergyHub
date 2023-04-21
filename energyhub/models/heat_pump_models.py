@@ -17,16 +17,17 @@ class EcoforestModel(BaseModel):
     dhw_power = NumericProperty(0)
     outside_temperature = NumericProperty(0)
 
-    def __init__(self, server, port, serial_number, auth_key, **kwargs):
+    def __init__(self, server, port, serial_number, auth_key, timezone, **kwargs):
         super().__init__(**kwargs)
         self.server = server
         self.port = port
         self.serial_number = serial_number
         self.auth_key = auth_key
+        self.timezone = timezone
 
     @popup_on_error('Error initialising Ecoforest')
     def _connect(self):
-        self.connection = EcoforestClient(self.server, self.port, self.serial_number, self.auth_key)
+        self.connection = EcoforestClient(self.server, self.port, self.serial_number, self.auth_key, self.timezone)
 
     @popup_on_error('Ecoforest', cleanup_function=BaseModel._finish_refresh)
     def _refresh(self):
