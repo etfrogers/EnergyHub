@@ -179,8 +179,14 @@
     Image:
         source: 'energyhub/resources/radiator.jpg'
         size_hint: (0.35, 0.35)
-        pos_hint: {'x': 0.001, 'y': 0.34}
-
+        pos_hint: {'x': 0.001, 'y': 0.35}
+    EHLabel:
+        is_stale: app.heat_pump_model.stale
+        text: str(app.heat_pump_model.heating_buffer_actual_temperature) + ' (' + str(app.heat_pump_model.heating_buffer_setpoint_temperature) + ') ºC'
+        size_hint: (0.35, 0.005)
+        pos_hint: {'x': 0.001, 'y': 0.46}
+        valign: 'middle'
+        halign: 'center'
     PowerArrow:
         active_color: app.solar_model.load_color
         # from House to first branches
@@ -193,6 +199,14 @@
         source: 'energyhub/resources/shower.png'
         size_hint: (0.2, 0.2)
         pos_hint: {'x': 0.05, 'y': 0.3}
+    EHLabel:
+        is_stale: app.heat_pump_model.stale
+        text: str(app.heat_pump_model.dhw_actual_temperature) + ' (' + str(app.heat_pump_model.dhw_setpoint_temperature) + ') ºC'
+        size_hint: (0.35, 0.005)
+        pos_hint: {'x': 0.001, 'y': 0.34}
+        valign: 'middle'
+        halign: 'center'
+
     LabeledArrow:
         # first left branch
         is_stale: app.heat_pump_model.stale

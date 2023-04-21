@@ -16,6 +16,10 @@ class EcoforestModel(BaseModel):
     heating_power = NumericProperty(0)
     dhw_power = NumericProperty(0)
     outside_temperature = NumericProperty(0)
+    heating_buffer_setpoint_temperature = NumericProperty(0)
+    heating_buffer_actual_temperature = NumericProperty(0)
+    dhw_setpoint_temperature = NumericProperty(0)
+    dhw_actual_temperature = NumericProperty(0)
 
     def __init__(self, server, port, serial_number, auth_key, timezone, **kwargs):
         super().__init__(**kwargs)
@@ -38,6 +42,10 @@ class EcoforestModel(BaseModel):
     def _update_properties(self, status):
         self._heat_pump_power = status['ElectricalPower']['value']
         self.outside_temperature = status['OutsideTemp']['value']
+        self.heating_buffer_actual_temperature = status['HeatingBufferActualTemp']['value']
+        self.heating_buffer_setpoint_temperature = status['HeatingBufferSetpoint']['value']
+        self.dhw_actual_temperature = status['DHWActualTemp']['value']
+        self.dhw_setpoint_temperature = status['DWHSetpoint']['value']
         if status['DHWDemand']['value']:
             self.dhw_power = self._heat_pump_power
             self.heating_power = 0
