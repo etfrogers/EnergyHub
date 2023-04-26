@@ -3,7 +3,7 @@ from threading import Thread
 import numpy as np
 from kivy.app import App
 from kivy.clock import Clock, mainthread
-from kivy.properties import NumericProperty, AliasProperty, ObjectProperty
+from kivy.properties import AliasProperty
 from kivy.utils import platform
 
 from matplotlib import pyplot as plt
@@ -16,6 +16,7 @@ from ecoforest.plotting import stacked_bar
 from energyhub.models.car_models import JLRCarModel
 from energyhub.models.diverter_models import MyEnergiModel
 from energyhub.models.heat_pump_models import EcoforestModel
+from energyhub.models.model_set import ModelSet
 from energyhub.models.solar_models import SolarEdgeModel
 from energyhub.utils import popup_on_error, normalise_to_timestamps
 from energyhub.config import config
@@ -30,7 +31,7 @@ else:
     plt.rcParams['font.size'] = 24
 
 
-# TODO swipe down to refresh
+# TODO
 #   refresh clock
 #   refresh on resume
 #   more current status
@@ -54,15 +55,6 @@ else:
 
 
 class EnergyHubApp(App):
-    solar_model = ObjectProperty()
-    car_model = ObjectProperty()
-    heat_pump_model = ObjectProperty()
-    diverter_model = ObjectProperty()
-    _solar_edge_load = NumericProperty(0)
-    _heating_power = NumericProperty(0)
-    _dhw_power = NumericProperty(0)
-    _car_charger_power = NumericProperty(0)
-    _immersion_power = NumericProperty(0)
 
     @property
     def small_size(self):
@@ -72,33 +64,24 @@ class EnergyHubApp(App):
         super(EnergyHubApp, self).__init__(**kwargs)
         self._refreshing = False
         self._refreshing_history = False
-        self.solar_model = SolarEdgeModel(config.data['solar-edge']['api-key'],
+        solar_model = SolarEdgeModel(config.data['solar-edge']['api-key'],
                                           config.data['solar-edge']['site-id'],
                                           config.timezone)
-        self.car_model = JLRCarModel(config.data['jlr']['username'],
+        car_model = JLRCarModel(config.data['jlr']['username'],
                                      config.data['jlr']['password'],
                                      config.data['jlr'].get('vin', None))
-        self.heat_pump_model = EcoforestModel(config.data['ecoforest']['server'],
+        heat_pump_model = EcoforestModel(config.data['ecoforest']['server'],
                                               config.data['ecoforest']['port'],
                                               config.data['ecoforest']['serial-number'],
                                               config.data['ecoforest']['auth-key'],
                                               timezone=config.timezone)
-        self.diverter_model = MyEnergiModel(config.data['myenergi']['username'],
+        diverter_model = MyEnergiModel(config.data['myenergi']['username'],
                                             config.data['myenergi']['api-key'],
                                             config.timezone)
-
-        self.solar_model.bind(load=self.setter('_solar_edge_load'),
-                              )
-        self.heat_pump_model.bind(heating_power=self.setter('_heating_power'),
-                                  dhw_power=self.setter('_dhw_power'),
-                                  )
-        self.diverter_model.bind(immersion_power=self.setter('_immersion_power'),
-                                 car_charger_power=self.setter('_car_charger_power'),
-                                 )
-
-    @property
-    def models(self):
-        return [self.solar_model, self.car_model, self.heat_pump_model, self.diverter_model]
+        self.models = ModelSet(solar=solar_model,
+                               car=car_model,
+                               heat_pump=heat_pump_model,
+                               diverter=diverter_model)
 
     def build(self):
         super(EnergyHubApp, self).build()
@@ -128,17 +111,6 @@ class EnergyHubApp(App):
             return
         self.build_history_graphs()
 
-    def _get_remaining_load(self):
-        return self.solar_model.load - (self.diverter_model.immersion_power
-                                        + self.diverter_model.car_charger_power
-                                        + self.heat_pump_model.heating_power
-                                        + self.heat_pump_model.dhw_power)
-
-    def _get_bottom_arms_power(self):
-        return (self.diverter_model.car_charger_power
-                + self.diverter_model.immersion_power
-                + self.heat_pump_model.dhw_power)
-
     def _get_refreshing(self):
         return any(model.refreshing for model in self.models)
 
@@ -149,14 +121,6 @@ class EnergyHubApp(App):
     def _check_refreshing(self):
         self.refreshing = self._get_refreshing()
 
-    remaining_load = AliasProperty(
-        _get_remaining_load,
-        bind=['_solar_edge_load', '_car_charger_power', '_immersion_power', '_heating_power', '_dhw_power']
-    )
-    _bottom_arms_power = AliasProperty(
-        _get_bottom_arms_power,
-        bind=['_car_charger_power', '_immersion_power', '_dhw_power']
-    )
     refreshing = AliasProperty(
         _get_refreshing,
         setter=_set_refreshing,
@@ -187,17 +151,17 @@ class EnergyHubApp(App):
         graph_panel.clear_widgets()
         if date is None:
             date = date_picker.date
-        self.solar_model.get_history_for_date(date)
-        self.solar_model.get_battery_history_for_date(date)
-        self.diverter_model.get_history_for_date(date, 'Z')
-        self.diverter_model.get_history_for_date(date, 'E')
-        self.heat_pump_model.get_history_for_date(date)
+        self.models.solar.get_history_for_date(date)
+        self.models.solar.get_battery_history_for_date(date)
+        self.models.diverter.get_history_for_date(date, 'Z')
+        self.models.diverter.get_history_for_date(date, 'E')
+        self.models.heat_pump.get_history_for_date(date)
 
-        solar_timestamps, solar_data = self.solar_model.get_result('get_history_for_date', date)
-        zappi_timestamps, zappi_powers = self.diverter_model.get_result('get_history_for_date', date, 'Z')
-        eddi_timestamps, eddi_powers = self.diverter_model.get_result('get_history_for_date', date, 'E')
-        battery_timestamps, battery_data = self.solar_model.get_result('get_battery_history_for_date', date)
-        heat_pump_timestamps, heat_pump_data = self.heat_pump_model.get_result('get_history_for_date', date)
+        solar_timestamps, solar_data = self.models.solar.get_result('get_history_for_date', date)
+        zappi_timestamps, zappi_powers = self.models.diverter.get_result('get_history_for_date', date, 'Z')
+        eddi_timestamps, eddi_powers = self.models.diverter.get_result('get_history_for_date', date, 'E')
+        battery_timestamps, battery_data = self.models.solar.get_result('get_battery_history_for_date', date)
+        heat_pump_timestamps, heat_pump_data = self.models.heat_pump.get_result('get_history_for_date', date)
 
         self._plot_history_data(solar_timestamps, solar_data, zappi_timestamps, zappi_powers,
                                 eddi_timestamps, eddi_powers, heat_pump_timestamps, heat_pump_data,
