@@ -1,4 +1,5 @@
 #:import Arrow kivy_arrow.arrow.Arrow
+#:import CurrentStatus energyhub.current_status.CurrentStatus
 #:include energyhub/utils.kv
 
 #:set non_eco (1, 0.5, 0, 1)
@@ -15,7 +16,7 @@
     val: 0
     unit: 'kW'
     conversion_factor: 1/1000
-    unit_label: ('\n' if self.vertical else ' ' ) + f'[size={app.small_size}]{self.unit}[/size]'
+    unit_label: ('\n' if self.vertical else ' ' ) + f'[size={CurrentStatus.small_size()}]{self.unit}[/size]'
     str_val: '%.*f' % (self.dp, self.val*self.conversion_factor)
     text: f'{self.str_val}{self.unit_label}'
     dp: 2
@@ -42,7 +43,7 @@
 <PowerArrow@Arrow>
     power: 0
     active_color: neutral
-    head_size: app.calculate_arrow_size(self.power)
+    head_size: CurrentStatus.calculate_arrow_size(self.power)
     main_color: inactive if self.power == 0 else self.active_color
 
 
@@ -107,12 +108,12 @@
     IconButtonRotatable:
         source: 'energyhub/resources/icons8-reset-48.png'
         text: 'Refresh'
-        on_press: app.refresh()
+        on_press: root.refresh()
         pos_hint: {'x': 0.86, 'y': 0.02}
         size_hint: (0.08, 0.08)
-        opacity: 0.5 if app.refreshing else 1
-        disabled: app.refreshing
-        rotating: app.refreshing
+        opacity: 0.5 if root.refreshing else 1
+        disabled: root.refreshing
+        rotating: root.refreshing
         allow_stretch: True
     Image:
         source: 'energyhub/resources/Solar_panel_icon.png'
@@ -279,7 +280,9 @@
         size_hint: (0.1, 0.05)
 
 <CurrentStatusContainer@RefreshOnScrollContainer>
-    on_scroll_y: app.check_pull_refresh(self)
+    on_scroll_y: status_widget.check_pull_refresh(self)
+    id: status_container
     CurrentStatus:
+        id: status_widget
         height: root.height*1.01
         size_hint_y: None

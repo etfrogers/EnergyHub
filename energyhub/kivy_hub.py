@@ -3,7 +3,6 @@ from threading import Thread
 import numpy as np
 from kivy.app import App
 from kivy.clock import Clock, mainthread
-from kivy.properties import AliasProperty
 from kivy.utils import platform
 
 from matplotlib import pyplot as plt
@@ -13,7 +12,6 @@ from adjustText import adjust_text
 from kivy.garden.matplotlib import FigureCanvasKivyAgg
 
 from ecoforest.plotting import stacked_bar
-from energyhub.current_status import CurrentStatus
 from energyhub.models.car_models import JLRCarModel
 from energyhub.models.diverter_models import MyEnergiModel
 from energyhub.models.heat_pump_models import EcoforestModel
@@ -57,10 +55,6 @@ else:
 
 class EnergyHubApp(App):
 
-    @property
-    def small_size(self):
-        return 25 if platform == 'android' else 15
-
     def __init__(self, **kwargs):
         super(EnergyHubApp, self).__init__(**kwargs)
         self._refreshing = False
@@ -90,53 +84,17 @@ class EnergyHubApp(App):
             model.connect()
         for model in self.models:
             model.get_result('connect')
-        self.refresh()
+        self.root.ids.current_status.refresh()
         # build graphs needs to be called after initialisation to get sizes correct
         Clock.schedule_once(lambda x: Thread(self.build_history_graphs()).start(), 0.1)
-        Clock.schedule_interval(lambda x: self._check_refreshing(), 1)
 
     def on_pause(self):
         return True
-
-    def refresh(self):
-        for model in self.models:
-            model.refresh()
-
-    def check_pull_refresh(self, view):
-        if view.scroll_y < 2 or self.refreshing:
-            return
-        self.refresh()
 
     def check_pull_refresh_history(self, view):
         if view.scroll_y <= 1.1 or self._refreshing_history:
             return
         self.build_history_graphs()
-
-    def _get_refreshing(self):
-        return any(model.refreshing for model in self.models)
-
-    def _set_refreshing(self, value):
-        self._refreshing = value
-        return True
-
-    def _check_refreshing(self):
-        self.refreshing = self._get_refreshing()
-
-    refreshing = AliasProperty(
-        _get_refreshing,
-        setter=_set_refreshing,
-        cache=False,
-    )
-
-    @staticmethod
-    def calculate_arrow_size(power):
-        if power == 0:
-            return 0
-        else:
-            size = (15 + (30 * power / 5000))
-            if platform == 'android':
-                size = (25 + (70 * power / 5000))
-            return size
 
     def _end_refreshing_history(self):
         self._refreshing_history = False
