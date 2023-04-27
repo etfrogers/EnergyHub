@@ -97,7 +97,8 @@
     canvas.after:
         PopMatrix
 
-<CurrentStatusInner@RelativeLayout>:
+<CurrentStatus>:
+    models: app.models
     canvas.before:
         Color:
             rgb: 1, 1, 1
@@ -124,29 +125,29 @@
         o_y: self.parent.height * 0.9
         distance: self.parent.height * 0.1
         angle: 270
-        power: app.models.solar.solar_production
+        power: root.models.solar.solar_production
     PowerLabel:
-        val: app.models.solar.solar_production
-        is_stale: app.models.solar.stale
+        val: root.models.solar.solar_production
+        is_stale: root.models.solar.stale
         pos_hint: {'y': 0.925, 'x': 0.45}
         size_hint: (0.1, 0.1)
     LabeledArrow:
-        is_stale: app.models.solar.stale
-        power: app.models.solar.battery_production
-        active_color: eco if app.models.solar.solar_production > 0 else non_eco
+        is_stale: root.models.solar.stale
+        power: root.models.solar.battery_production
+        active_color: eco if root.models.solar.solar_production > 0 else non_eco
         o_x: self.parent.width * 0.3
         o_y: self.parent.height * 0.8
         distance: self.parent.width * 0.2
         angle: 0
-        reverse_arrow: app.models.solar.battery_state == 'Charging'
+        reverse_arrow: root.models.solar.battery_state == 'Charging'
     Battery:
-        color: app.models.solar.battery_color
-        level: app.models.solar.battery_level
+        color: root.models.solar.battery_color
+        level: root.models.solar.battery_level
         size_hint: (0.122, 0.1)
         pos_hint: {'x': 0.16 - ((self.width/self.parent.width) / 2), 'y': 0.75}
     PercentLabel:
-        is_stale: app.models.solar.stale
-        val: app.models.solar.battery_level
+        is_stale: root.models.solar.stale
+        val: root.models.solar.battery_level
         pos_hint: {'y': 0.83, 'x': 0.15}
         size_hint: (0.05, 0.1)
     Image:
@@ -154,25 +155,25 @@
         size_hint: (0.2, 0.2)
         pos_hint: {'x': 0.75, 'y': 0.7}
     LabeledArrow:
-        is_stale: app.models.solar.stale
-        power: app.models.solar.grid_power
-        reverse_arrow: app.models.solar.grid_exporting
-        active_color: eco if app.models.solar.grid_exporting else non_eco
+        is_stale: root.models.solar.stale
+        power: root.models.solar.grid_power
+        reverse_arrow: root.models.solar.grid_exporting
+        active_color: eco if root.models.solar.grid_exporting else non_eco
         o_x: self.parent.width * 0.7
         o_y: self.parent.height * 0.8
         distance: self.parent.width * 0.2
         angle: 180
     LabeledArrow:
-        active_color: app.models.solar.load_color
+        active_color: root.models.solar.load_color
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.8
         distance: self.parent.height * 0.1
         angle: 270
-        power: app.models.solar.load
-        is_stale: app.models.solar.stale
+        power: root.models.solar.load
+        is_stale: root.models.solar.stale
     EHLabel:
-        is_stale: app.models.heat_pump.stale
-        text: str(app.models.heat_pump.outside_temperature) + ' ºC'
+        is_stale: root.models.heat_pump.stale
+        text: str(root.models.heat_pump.outside_temperature) + ' ºC'
         size_hint: (0.1, 0.1)
         pos_hint: {'x': 0.65, 'y': 0.6}
         valign: 'middle'
@@ -181,27 +182,27 @@
         size_hint: (0.35, 0.35)
         pos_hint: {'x': 0.001, 'y': 0.35}
     EHLabel:
-        is_stale: app.models.heat_pump.stale
-        text: str(app.models.heat_pump.heating_buffer_actual_temperature) + ' (' + str(app.models.heat_pump.heating_buffer_setpoint_temperature) + ') ºC'
+        is_stale: root.models.heat_pump.stale
+        text: str(root.models.heat_pump.heating_buffer_actual_temperature) + ' (' + str(root.models.heat_pump.heating_buffer_setpoint_temperature) + ') ºC'
         size_hint: (0.35, 0.005)
         pos_hint: {'x': 0.001, 'y': 0.46}
         valign: 'middle'
         halign: 'center'
     PowerArrow:
-        active_color: app.models.solar.load_color
+        active_color: root.models.solar.load_color
         # from House to first branches
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.6
         distance: self.parent.height * 0.1
         angle: 270
-        power: app.models.solar.load
+        power: root.models.solar.load
     Image:
         source: 'energyhub/resources/shower.png'
         size_hint: (0.2, 0.2)
         pos_hint: {'x': 0.05, 'y': 0.3}
     EHLabel:
-        is_stale: app.models.heat_pump.stale
-        text: str(app.models.heat_pump.dhw_actual_temperature) + ' (' + str(app.models.heat_pump.dhw_setpoint_temperature) + ') ºC'
+        is_stale: root.models.heat_pump.stale
+        text: str(root.models.heat_pump.dhw_actual_temperature) + ' (' + str(root.models.heat_pump.dhw_setpoint_temperature) + ') ºC'
         size_hint: (0.35, 0.005)
         pos_hint: {'x': 0.001, 'y': 0.34}
         valign: 'middle'
@@ -209,76 +210,76 @@
 
     LabeledArrow:
         # first left branch
-        is_stale: app.models.heat_pump.stale
-        active_color: app.models.solar.load_color
+        is_stale: root.models.heat_pump.stale
+        active_color: root.models.solar.load_color
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.5
         distance: self.parent.width * 0.2
         angle: 180
-        power: app.models.heat_pump.heating_power
+        power: root.models.heat_pump.heating_power
     Image:
         source: 'energyhub/resources/light-bulb-2-256.png'
         size_hint: (0.2, 0.2)
         pos_hint: {'x': 0.75, 'y': 0.42}
     LabeledArrow:
         # first right branch
-        is_stale: app.models.solar.stale
-        active_color: app.models.solar.load_color
+        is_stale: root.models.solar.stale
+        active_color: root.models.solar.load_color
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.5
         distance: self.parent.width * 0.2
         angle: 0
-        power: app.models.remaining_load
+        power: root.models.remaining_load
     PowerArrow:
         # from first branches to second branches
-        active_color: app.models.solar.load_color
+        active_color: root.models.solar.load_color
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.5
         distance: self.parent.height * 0.1
         angle: 270
-        power: app.models._bottom_arms_power
+        power: root.models._bottom_arms_power
     LabeledArrow:
-        is_stale: app.models.heat_pump.stale
-        active_color: app.models.solar.load_color
+        is_stale: root.models.heat_pump.stale
+        active_color: root.models.solar.load_color
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.4
         distance: self.parent.width * 0.2
         angle: 180
-        power: app.models.heat_pump.dhw_power
+        power: root.models.heat_pump.dhw_power
     LabeledArrow:
-        is_stale: app.models.diverter.stale
-        active_color: app.models.solar.load_color
+        is_stale: root.models.diverter.stale
+        active_color: root.models.solar.load_color
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.4
         distance: self.parent.width * 0.2
         angle: 0
-        power: app.models.diverter.immersion_power
+        power: root.models.diverter.immersion_power
     Image:
         source: 'energyhub/resources/immersion-heater.png'
         size_hint: (0.2, 0.2)
         pos_hint: {'x': 0.75, 'y': 0.3}
     LabeledArrow:
         # to car load
-        is_stale: app.models.diverter.stale
-        active_color: app.models.solar.load_color
+        is_stale: root.models.diverter.stale
+        active_color: root.models.solar.load_color
         o_x: self.parent.width * 0.5
         o_y: self.parent.height * 0.4
         distance: self.parent.height * 0.1
         angle: 270
-        power: app.models.diverter.car_charger_power
+        power: root.models.diverter.car_charger_power
     Image:
         source: 'energyhub/resources/ipace.jpg'
         size_hint: (0.5, 0.3)
         allow_stretch: False
         pos_hint: {'x': 0.25, 'y': 0.1}
     EHLabel:
-        is_stale: app.models.car.stale
-        text: app.models.car.charge_label
+        is_stale: root.models.car.stale
+        text: root.models.car.charge_label
         pos_hint: {'y': 0.12, 'x': 0.45}
         size_hint: (0.1, 0.05)
 
-<CurrentStatus@RefreshOnScrollContainer>
+<CurrentStatusContainer@RefreshOnScrollContainer>
     on_scroll_y: app.check_pull_refresh(self)
-    CurrentStatusInner:
+    CurrentStatus:
         height: root.height*1.01
         size_hint_y: None

@@ -13,6 +13,7 @@ from adjustText import adjust_text
 from kivy.garden.matplotlib import FigureCanvasKivyAgg
 
 from ecoforest.plotting import stacked_bar
+from energyhub.current_status import CurrentStatus
 from energyhub.models.car_models import JLRCarModel
 from energyhub.models.diverter_models import MyEnergiModel
 from energyhub.models.heat_pump_models import EcoforestModel
