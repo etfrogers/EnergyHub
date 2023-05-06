@@ -64,7 +64,7 @@ def load_config() -> Config:
 
 
 def setup_logging():
-    logger_ = logging.getLogger('solaredgeoptimiser')
+    logger_ = logging.getLogger('EnergyHub')
     logger_.setLevel(logging.DEBUG)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
