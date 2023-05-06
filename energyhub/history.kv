@@ -1,14 +1,16 @@
 #:import DatePicker energyhub.datepicker.DatePicker
+#:import HistoryPanel energyhub.history_panel.HistoryPanel
 #:include energyhub/utils.kv
 
-<HistoryPanel@BoxLayout>:
+<HistoryPanel>:
     orientation: 'vertical'
+    models: app.models
     CollapsibleDatePicker:
         id: history_date
-        on_date: app.build_history_graphs(self.date)
+        on_date: root.build_history_graphs(self.date)
         size_hint_y: None
     RefreshOnScrollContainer:
-        on_scroll_y: app.check_pull_refresh_history(self)
+        on_scroll_y: root.check_pull_refresh(self)
         BoxLayout:
             size_hint_y: None
             height: self.minimum_height

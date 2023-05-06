@@ -280,9 +280,9 @@
         size_hint: (0.1, 0.05)
 
 <CurrentStatusContainer@RefreshOnScrollContainer>
-    on_scroll_y: status_widget.check_pull_refresh(self)
+    on_scroll_y: status_panel.check_pull_refresh(self)
     id: status_container
     CurrentStatus:
-        id: status_widget
+        id: status_panel
         height: root.height*1.01
         size_hint_y: None

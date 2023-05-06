@@ -3,9 +3,11 @@ from kivy.clock import Clock
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.utils import platform
 
+from energyhub.models.model_set import ModelSet
+
 
 class CurrentStatus(RelativeLayout):
-    models = ObjectProperty()
+    models: ModelSet = ObjectProperty()
 
     def __init__(self, **kw):
         super().__init__(**kw)
