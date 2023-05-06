@@ -247,12 +247,14 @@ class BillEstimator:
     def estimate_bill_for_period(self, start: date, end: date, inc_vat: bool):
         return sum([self[day].estimated_bill(inc_vat) for day in date_range(start, end)])
 
+    def estimate_credit_for_period(self, start: date, end: date, inc_vat: bool):
+        return sum([self[day].estimated_credit(inc_vat) for day in date_range(start, end)])
+
     def calculate_credit_for_day(self, day: date, inc_vat: bool):
         return self[day].calculated_credit(inc_vat)
 
     def estimate_credit_for_day(self, day: date, inc_vat: bool):
         return self[day].estimated_credit(inc_vat)
-
 
     def __getitem__(self, item: date) -> BillEstimate:
         estimate = self._cache[item]
