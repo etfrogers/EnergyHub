@@ -1,4 +1,4 @@
-from datetime import datetime, date, time, timedelta
+from datetime import datetime, date
 import json
 from typing import List
 
@@ -38,33 +38,42 @@ TIME_FORMAT = '%Y-%m-%dT%H:%M:%S%z'
 METER_CONSUMPTION_URL = BASE_URL + '/v1/electricity-meter-points/{mpan}/meters/{serial_number}/consumption/'
 
 
-class MeterTimepoint:
+class _Timepoint:
     def __init__(self, result):
-        self.from_time = datetime.strptime(result['interval_start'], TIME_FORMAT)
-        self.to_time = datetime.strptime(result['interval_end'], TIME_FORMAT)
-        self.value = result['consumption']
+        try:
+            start_str = result['interval_start']
+            end_str = result['interval_end']
+        except KeyError:
+            start_str = result['valid_from']
+            end_str = result['valid_to']
+        self.from_time = datetime.strptime(start_str, TIME_FORMAT)
+        self.to_time = datetime.strptime(end_str, TIME_FORMAT)
 
     def __str__(self):
         return f"{self.from_time.strftime('%d/%m/%Y %H:%M')}-" \
-               f"{self.to_time.strftime('%H:%M')}  {self.value:.2f}kWh"
+               f"{self.to_time.strftime('%H:%M')}"
 
     def __repr__(self):
         return str(self)
 
 
-class RateTimepoint:
+class MeterTimepoint(_Timepoint):
     def __init__(self, result):
-        self.from_time = datetime.strptime(result['valid_from'], TIME_FORMAT)
-        self.to_time = datetime.strptime(result['valid_to'], TIME_FORMAT)
+        super().__init__(result)
+        self.value = result['consumption']
+
+    def __str__(self):
+        return super().__str__() + f" {self.value:.2f}kWh"
+
+
+class RateTimepoint(_Timepoint):
+    def __init__(self, result):
+        super().__init__(result)
         self.price_exc_vat = result['value_exc_vat']
         self.price_inc_vat = result['value_inc_vat']
 
     def __str__(self):
-        return f"{self.from_time.strftime('%d/%m/%Y %H:%M')}-" \
-               f"{self.to_time.strftime('%H:%M')}  {self.price_inc_vat:.2f}p"
-
-    def __repr__(self):
-        return str(self)
+        return super().__str__() + f" {self.price_inc_vat:.2f}p"
 
 
 class OctopusClient:
