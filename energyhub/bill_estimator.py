@@ -2,14 +2,14 @@ from builtins import AttributeError
 from collections import defaultdict
 from datetime import datetime, timedelta, date, time
 from functools import cached_property, lru_cache
-from typing import Dict, Optional
+from typing import Dict, Optional, List, Union
 
 import numpy as np
 
 from ecoforest.ecoforest_processor import date_range
 from energyhub.config import config
 from SolarEdgeClient.solaredge.solar_edge_api import day_start_end_times
-from octopus_client.octopy.octopus_api import OctopusClient
+from octopus_client.octopy.octopus_api import OctopusClient, RateTimepoint, MeterTimepoint
 from solaredge import SolarEdgeClient
 
 
@@ -173,18 +173,31 @@ class BillEstimate:
             raise MissingMeterReadingError(f'No export readings found for {self.day.strftime(DATE_FORMAT)}')
         return data
 
-    def meter_points_to_array(self, datapoints, value_name: str = 'value'):
+    def meter_points_to_array(self,
+                              datapoints: List[Union[MeterTimepoint, RateTimepoint]],
+                              value_name: str = 'value'):
         periods = self.billing_periods
-        values = np.zeros_like(datapoints, dtype=float)
+        values = np.zeros((periods.shape[0], ), dtype=float) * np.NaN
         for i, datapoint in enumerate(datapoints):
             period_index = np.where(datapoint.from_time == periods[:, 0])[0]
             if period_index.size == 0:
                 raise MissingMeterReadingError
             elif period_index.size > 1:
                 raise DuplicateMeterReadingError
-            if datapoint.to_time != periods[period_index, 1]:
-                raise MeterReadingTimeMismatchError
-            values[period_index] = getattr(datapoint, value_name)
+            if datapoint.to_time.utctimetuple() != periods[period_index, 1][0].utctimetuple():
+                raise MeterReadingTimeMismatchError(f'Mismatched end times for datapoint {datapoint} '
+                                                    f'(with end time {datapoint.to_time})\n'
+                                                    f'and period {periods[period_index]}')
+            if not np.isnan(values[period_index]):
+                raise DuplicateMeterReadingError
+            try:
+                values[period_index] = getattr(datapoint, value_name)
+            except IndexError:
+                raise IndexError(f'Cannot find a value for period {periods[period_index]}.')
+        if np.any(np.isnan(values)):
+            raise MissingMeterReadingError(f'Missing reading for day {self.day}.'
+                                           f'Readings:\n'
+                                           f'{datapoints}')
         return values
 
 
