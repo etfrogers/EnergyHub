@@ -7,7 +7,7 @@
     models: app.models
     CollapsibleDatePicker:
         id: history_date
-        on_date: root.build_history_graphs(self.date)
+        on_date: root.build_graphs(self.date)
         size_hint_y: None
     RefreshOnScrollContainer:
         on_scroll_y: root.check_pull_refresh(self)

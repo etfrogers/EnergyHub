@@ -24,21 +24,21 @@ class HistoryPanel(BoxLayout):
         # build graphs needs to be called after initialisation to get sizes correct
         super().__init__(**kwargs)
         self._refreshing = False
-        Clock.schedule_once(lambda x: Thread(self.build_history_graphs()).start(), 0.1)
+        Clock.schedule_once(lambda x: Thread(self.build_graphs()).start(), 0.1)
 
     def check_pull_refresh(self, view):
         print(view.scroll_y)
         print(self._refreshing)
         if view.scroll_y <= 1.1 or self._refreshing:
             return
-        self.build_history_graphs()
+        self.build_graphs()
 
     def _end_refreshing(self):
         self._refreshing = False
 
     @popup_on_error('History fetching', _end_refreshing)
-    def build_history_graphs(self, date=None):
-        self._refreshing_history = True
+    def build_graphs(self, date=None):
+        self._refreshing = True
         date_picker = self.ids.history_date
         graph_panel = self.ids.graph_panel
         for graph_widget in graph_panel.children:
@@ -58,17 +58,17 @@ class HistoryPanel(BoxLayout):
         battery_timestamps, battery_data = self.models.solar.get_result('get_battery_history_for_date', date)
         heat_pump_timestamps, heat_pump_data = self.models.heat_pump.get_result('get_history_for_date', date)
 
-        self._plot_history_data(solar_timestamps, solar_data, zappi_timestamps, zappi_powers,
-                                eddi_timestamps, eddi_powers, heat_pump_timestamps, heat_pump_data,
-                                battery_timestamps, battery_data)
+        self._plot_data(solar_timestamps, solar_data, zappi_timestamps, zappi_powers,
+                        eddi_timestamps, eddi_powers, heat_pump_timestamps, heat_pump_data,
+                        battery_timestamps, battery_data)
 
     @mainthread
     @popup_on_error('History plotting', _end_refreshing)
-    def _plot_history_data(self, solar_timestamps, solar_data,
-                           zappi_timestamps, zappi_powers,
-                           eddi_timestamps, eddi_powers,
-                           heat_pump_timestamps, heat_pump_data,
-                           battery_timestamps, battery_data):
+    def _plot_data(self, solar_timestamps, solar_data,
+                         zappi_timestamps, zappi_powers,
+                         eddi_timestamps, eddi_powers,
+                         heat_pump_timestamps, heat_pump_data,
+                         battery_timestamps, battery_data):
         production_power = solar_data['production']
         load_power = solar_data['consumption']
         export_power = solar_data['export']
@@ -243,7 +243,8 @@ class HistoryPanel(BoxLayout):
                                          )
         ax.set_ylim([0, 100])
 
-    def labelled_stacked_bar(self, axes, values, total_value, colors=None, hatching=None):
+    @staticmethod
+    def labelled_stacked_bar(axes, values, total_value, colors=None, hatching=None):
         bars = stacked_bar([0], *[v/1000 for v in values],
                            ax=axes,
                            total_width=1,
@@ -254,13 +255,13 @@ class HistoryPanel(BoxLayout):
                 val = bar.datavalues[0]
                 bar_base = bar[0].xy[1]
                 label_height = bar_base + 0.5 * val
-                text = self._bar_label(val * 1000)  # convert val back to Wh
+                text = HistoryPanel._bar_label(val * 1000)  # convert val back to Wh
                 labels.append(axes.text(0.6, label_height, text, horizontalalignment='left'))
         axes.set_ylim([0, (total_value / 1000) * 1.1])
         axes.set_xlim([-0.5, 1.5])
         # Label the total
         axes.text(0., (total_value / 1000) * 1.02,
-                  self._bar_label(total_value),
+                  HistoryPanel._bar_label(total_value),
                   horizontalalignment='center')
         plt.xticks([])
         plt.tight_layout()
