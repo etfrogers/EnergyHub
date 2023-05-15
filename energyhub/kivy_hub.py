@@ -56,16 +56,21 @@ class EnergyHubApp(App):
                                      timeout=10)
         car_model = JLRCarModel(config.data['jlr']['username'],
                                 config.data['jlr']['password'],
-                                config.data['jlr'].get('vin', None))
+                                config.data['jlr'].get('vin', None),
+                                timeout=60)
         heat_pump_model = EcoforestModel(config.data['ecoforest']['server'],
                                          config.data['ecoforest']['port'],
                                          config.data['ecoforest']['serial-number'],
                                          config.data['ecoforest']['auth-key'],
-                                         timezone=config.timezone)
+                                         timezone=config.timezone,
+                                         timeout=60)
         diverter_model = MyEnergiModel(config.data['myenergi']['username'],
                                        config.data['myenergi']['api-key'],
-                                       config.timezone)
-        mvhr_model = ZehnderModel(config.data['zehnder']['username'], config.data['zehnder']['api-key'])
+                                       config.timezone,
+                                       timeout=10)
+        mvhr_model = ZehnderModel('',
+                                  config.data['zehnder']['api-key'],
+                                  timeout=10)
 
         self.models = ModelSet(solar=solar_model,
                                car=car_model,
