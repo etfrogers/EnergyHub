@@ -10,3 +10,6 @@
 [submodule "EcoforestClient"]
 	path = EcoforestClient
 	url = https://github.com/etfrogers/EcoforestClient.git
+[submodule "pyzehndercloud_"]
+	path = pyzehndercloud_
+	url = https://github.com/etfrogers/pyzehndercloud.git
