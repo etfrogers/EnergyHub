@@ -2,7 +2,7 @@ from threading import Thread
 
 import numpy as np
 from kivy.app import App
-from kivy.properties import ObjectProperty
+from kivy.properties import ObjectProperty, AliasProperty, NumericProperty
 from matplotlib import pyplot as plt
 
 
@@ -19,6 +19,7 @@ from energyhub.utils import popup_on_error, normalise_to_timestamps
 
 class HistoryPanel(BoxLayout):
     models: ModelSet = ObjectProperty()
+    number_of_graphs = NumericProperty(0)
 
     def __init__(self, **kwargs):
         # build graphs needs to be called after initialisation to get sizes correct
@@ -170,6 +171,7 @@ class HistoryPanel(BoxLayout):
 
         history_panel = self.ids.graph_panel
         fig = plt.figure()
+        self.number_of_graphs += 1
         destination_ax, production_ax, consumption_ax = fig.subplots(1, 3, sharey=True)
         self.labelled_stacked_bar(consumption_ax,
                                   (solar_consumption_energy,
@@ -277,6 +279,7 @@ class HistoryPanel(BoxLayout):
                                convert_powers: bool = True, **kwargs):
         history_panel = self.ids.graph_panel
         fig = plt.figure()
+        self.number_of_graphs += 1
         if convert_powers:
             y = np.asarray(y) / 1000
         plots = plot_fun(x, y, **kwargs)
@@ -294,6 +297,20 @@ class HistoryPanel(BoxLayout):
         history_panel.add_widget(widget)
         return plt.gca()
 
-    @property
-    def graph_height(self):
-        return App.get_running_app().root.width * 0.5
+    def _graph_height(self):
+        if root_widget := App.get_running_app().root:
+            return root_widget.width * 0.5
+        else:
+            return 1
+
+    def _get_height(self):
+        return self.graph_height * self.number_of_graphs
+
+    graph_height = AliasProperty(
+        _graph_height,
+    )
+
+    total_graph_height = AliasProperty(
+        _get_height,
+        bind=['number_of_graphs']
+    )

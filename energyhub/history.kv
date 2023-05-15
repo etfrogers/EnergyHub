@@ -10,9 +10,10 @@
         on_date: root.build_graphs(self.date)
         size_hint_y: None
     RefreshOnScrollContainer:
-        on_scroll_y: root.check_pull_refresh(self)
+        on_scroll_y: root.check_pull_refresh(root)
+        height: root.height
         BoxLayout:
             size_hint_y: None
-            height: self.minimum_height
+            height: root.total_graph_height
             orientation: 'vertical'
             id: graph_panel
