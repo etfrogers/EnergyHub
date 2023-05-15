@@ -1,1 +1,0 @@
-kivy /Users/user/Documents/code/EnergyHub/energyhub/kivy_hub.py
