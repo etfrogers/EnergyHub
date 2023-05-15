@@ -176,36 +176,82 @@
         is_stale: root.models.heat_pump.stale
         text: str(root.models.heat_pump.outside_temperature) + ' ºC'
         size_hint: (0.1, 0.1)
-        pos_hint: {'x': 0.65, 'y': 0.6}
+        pos_hint: {'x': 0.75, 'y': 0.60}
         valign: 'middle'
+
+    EHLabel:
+        is_stale: root.models.mvhr.stale
+        text: str(root.models.mvhr.outdoor_temperature) + ' ºO ' + str(root.models.mvhr.outdoor_humidity) + ' %'
+        size_hint: (0.005, 0.005)
+        pos_hint: {'x': 0.32, 'y': 0.67}
+        halign: 'center'
+        valign: 'middle'
+    Arrow:
+        arrow_at_midpoint: False
+        shaft_width: cm(0.07)
+        o_x: self.parent.width * 0.40
+        o_y: self.parent.height * 0.655
+        distance: self.parent.height * 0.035
+        angle: 290
+    EHLabel:
+        is_stale: root.models.mvhr.stale
+        text: str(root.models.mvhr.supply_temperature) + ' ºS\n' + str(root.models.mvhr.supply_humidity) + ' %'
+        size_hint: (0.005, 0.005)
+        pos_hint: {'x': 0.42, 'y': 0.58}
+        valign: 'middle'
+        halign: 'center'
+
+    EHLabel:
+        is_stale: root.models.mvhr.stale
+        text: str(root.models.mvhr.exhaust_temperature) + ' ºH ' + str(root.models.mvhr.exhaust_humidity) + ' %'
+        size_hint: (0.005, 0.005)
+        pos_hint: {'x': 0.62, 'y': 0.67}
+        valign: 'middle'
+        halign: 'center'
+    Arrow:
+        arrow_at_midpoint: False
+        shaft_width: cm(0.07)
+        o_x: self.parent.width * 0.57
+        o_y: self.parent.height * 0.625
+        distance: self.parent.height * 0.035
+        angle: 70
+
+    EHLabel:
+        is_stale: root.models.mvhr.stale
+        text: str(root.models.mvhr.extract_temperature) + ' ºE\n' + str(root.models.mvhr.extract_humidity) + ' %'
+        size_hint: (0.005, 0.005)
+        pos_hint: {'x': 0.58, 'y': 0.58}
+        halign: 'center'
+        valign: 'middle'
+
     Image:
         source: 'energyhub/resources/radiator.jpg'
         size_hint: (0.35, 0.35)
-        pos_hint: {'x': 0.001, 'y': 0.35}
+        pos_hint: {'x': 0.001, 'y': 0.25}
     EHLabel:
         is_stale: root.models.heat_pump.stale
         text: str(root.models.heat_pump.heating_buffer_actual_temperature) + ' (' + str(root.models.heat_pump.heating_buffer_setpoint_temperature) + ') ºC'
         size_hint: (0.35, 0.005)
-        pos_hint: {'x': 0.001, 'y': 0.46}
+        pos_hint: {'x': 0.001, 'y': 0.36}
         valign: 'middle'
         halign: 'center'
     PowerArrow:
         active_color: root.models.solar.load_color
         # from House to first branches
         o_x: self.parent.width * 0.5
-        o_y: self.parent.height * 0.6
+        o_y: self.parent.height * 0.5
         distance: self.parent.height * 0.1
         angle: 270
         power: root.models.solar.load
     Image:
         source: 'energyhub/resources/shower.png'
         size_hint: (0.2, 0.2)
-        pos_hint: {'x': 0.05, 'y': 0.3}
+        pos_hint: {'x': 0.05, 'y': 0.2}
     EHLabel:
         is_stale: root.models.heat_pump.stale
         text: str(root.models.heat_pump.dhw_actual_temperature) + ' (' + str(root.models.heat_pump.dhw_setpoint_temperature) + ') ºC'
         size_hint: (0.35, 0.005)
-        pos_hint: {'x': 0.001, 'y': 0.34}
+        pos_hint: {'x': 0.001, 'y': 0.24}
         valign: 'middle'
         halign: 'center'
 
@@ -214,20 +260,20 @@
         is_stale: root.models.heat_pump.stale
         active_color: root.models.solar.load_color
         o_x: self.parent.width * 0.5
-        o_y: self.parent.height * 0.5
+        o_y: self.parent.height * 0.4
         distance: self.parent.width * 0.2
         angle: 180
         power: root.models.heat_pump.heating_power
     Image:
         source: 'energyhub/resources/light-bulb-2-256.png'
         size_hint: (0.2, 0.2)
-        pos_hint: {'x': 0.75, 'y': 0.42}
+        pos_hint: {'x': 0.75, 'y': 0.32}
     LabeledArrow:
         # first right branch
         is_stale: root.models.solar.stale
         active_color: root.models.solar.load_color
         o_x: self.parent.width * 0.5
-        o_y: self.parent.height * 0.5
+        o_y: self.parent.height * 0.4
         distance: self.parent.width * 0.2
         angle: 0
         power: root.models.remaining_load
@@ -235,7 +281,7 @@
         # from first branches to second branches
         active_color: root.models.solar.load_color
         o_x: self.parent.width * 0.5
-        o_y: self.parent.height * 0.5
+        o_y: self.parent.height * 0.4
         distance: self.parent.height * 0.1
         angle: 270
         power: root.models._bottom_arms_power
@@ -243,7 +289,7 @@
         is_stale: root.models.heat_pump.stale
         active_color: root.models.solar.load_color
         o_x: self.parent.width * 0.5
-        o_y: self.parent.height * 0.4
+        o_y: self.parent.height * 0.3
         distance: self.parent.width * 0.2
         angle: 180
         power: root.models.heat_pump.dhw_power
@@ -251,20 +297,20 @@
         is_stale: root.models.diverter.stale
         active_color: root.models.solar.load_color
         o_x: self.parent.width * 0.5
-        o_y: self.parent.height * 0.4
+        o_y: self.parent.height * 0.3
         distance: self.parent.width * 0.2
         angle: 0
         power: root.models.diverter.immersion_power
     Image:
         source: 'energyhub/resources/immersion-heater.png'
         size_hint: (0.2, 0.2)
-        pos_hint: {'x': 0.75, 'y': 0.3}
+        pos_hint: {'x': 0.75, 'y': 0.2}
     LabeledArrow:
         # to car load
         is_stale: root.models.diverter.stale
         active_color: root.models.solar.load_color
         o_x: self.parent.width * 0.5
-        o_y: self.parent.height * 0.4
+        o_y: self.parent.height * 0.3
         distance: self.parent.height * 0.1
         angle: 270
         power: root.models.diverter.car_charger_power
@@ -272,11 +318,11 @@
         source: 'energyhub/resources/ipace.jpg'
         size_hint: (0.5, 0.3)
         allow_stretch: False
-        pos_hint: {'x': 0.25, 'y': 0.1}
+        pos_hint: {'x': 0.25, 'y': 0.0}
     EHLabel:
         is_stale: root.models.car.stale
         text: root.models.car.charge_label
-        pos_hint: {'y': 0.12, 'x': 0.45}
+        pos_hint: {'y': 0.02, 'x': 0.45}
         size_hint: (0.1, 0.05)
 
 <CurrentStatusContainer@RefreshOnScrollContainer>

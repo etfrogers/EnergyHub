@@ -8,6 +8,7 @@ from energyhub.models.car_models import JLRCarModel
 from energyhub.models.diverter_models import MyEnergiModel
 from energyhub.models.heat_pump_models import EcoforestModel
 from energyhub.models.model_set import ModelSet
+from energyhub.models.mvhr_models import ZehnderModel
 from energyhub.models.solar_models import SolarEdgeModel
 from energyhub.utils import popup_on_error, normalise_to_timestamps
 from energyhub.config import config
@@ -63,10 +64,13 @@ class EnergyHubApp(App):
         diverter_model = MyEnergiModel(config.data['myenergi']['username'],
                                        config.data['myenergi']['api-key'],
                                        config.timezone)
+        mvhr_model = ZehnderModel(config.data['zehnder']['username'], config.data['zehnder']['api-key'])
+
         self.models = ModelSet(solar=solar_model,
                                car=car_model,
                                heat_pump=heat_pump_model,
-                               diverter=diverter_model)
+                               diverter=diverter_model,
+                               mvhr=mvhr_model)
 
     def build(self):
         super(EnergyHubApp, self).build()

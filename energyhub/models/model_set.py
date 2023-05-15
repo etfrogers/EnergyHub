@@ -4,6 +4,7 @@ from kivy.properties import ObjectProperty, NumericProperty, AliasProperty
 from energyhub.models.car_models import JLRCarModel
 from energyhub.models.diverter_models import MyEnergiModel
 from energyhub.models.heat_pump_models import EcoforestModel
+from energyhub.models.mvhr_models import ZehnderModel
 from energyhub.models.solar_models import SolarEdgeModel
 
 
@@ -12,6 +13,7 @@ class ModelSet(EventDispatcher):
     car = ObjectProperty()
     heat_pump = ObjectProperty()
     diverter = ObjectProperty()
+    mvhr = ObjectProperty()
     _solar_edge_load = NumericProperty(0)
     _heating_power = NumericProperty(0)
     _dhw_power = NumericProperty(0)
@@ -19,12 +21,14 @@ class ModelSet(EventDispatcher):
     _immersion_power = NumericProperty(0)
 
     def __init__(self, /, solar: SolarEdgeModel, car: JLRCarModel, heat_pump: EcoforestModel, diverter: MyEnergiModel,
+                 mvhr: ZehnderModel,
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.solar = solar
         self.car = car
         self.heat_pump = heat_pump
         self.diverter = diverter
+        self.mvhr = mvhr
         self.solar.bind(load=self.setter('_solar_edge_load'))
         self.heat_pump.bind(heating_power=self.setter('_heating_power'),
                             dhw_power=self.setter('_dhw_power'),
