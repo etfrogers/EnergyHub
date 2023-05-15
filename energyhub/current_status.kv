@@ -181,7 +181,7 @@
 
     EHLabel:
         is_stale: root.models.mvhr.stale
-        text: str(root.models.mvhr.outdoor_temperature) + ' ºO ' + str(root.models.mvhr.outdoor_humidity) + ' %'
+        text: str(root.models.mvhr.outdoor_temperature) + ' ºC ' + str(root.models.mvhr.outdoor_humidity) + ' %'
         size_hint: (0.005, 0.005)
         pos_hint: {'x': 0.32, 'y': 0.67}
         halign: 'center'
@@ -195,7 +195,7 @@
         angle: 290
     EHLabel:
         is_stale: root.models.mvhr.stale
-        text: str(root.models.mvhr.supply_temperature) + ' ºS\n' + str(root.models.mvhr.supply_humidity) + ' %'
+        text: str(root.models.mvhr.supply_temperature) + ' ºC\n' + str(root.models.mvhr.supply_humidity) + ' %'
         size_hint: (0.005, 0.005)
         pos_hint: {'x': 0.42, 'y': 0.58}
         valign: 'middle'
@@ -203,7 +203,7 @@
 
     EHLabel:
         is_stale: root.models.mvhr.stale
-        text: str(root.models.mvhr.exhaust_temperature) + ' ºH ' + str(root.models.mvhr.exhaust_humidity) + ' %'
+        text: str(root.models.mvhr.exhaust_temperature) + ' ºC ' + str(root.models.mvhr.exhaust_humidity) + ' %'
         size_hint: (0.005, 0.005)
         pos_hint: {'x': 0.62, 'y': 0.67}
         valign: 'middle'
@@ -218,7 +218,7 @@
 
     EHLabel:
         is_stale: root.models.mvhr.stale
-        text: str(root.models.mvhr.extract_temperature) + ' ºE\n' + str(root.models.mvhr.extract_humidity) + ' %'
+        text: str(root.models.mvhr.extract_temperature) + ' ºC\n' + str(root.models.mvhr.extract_humidity) + ' %'
         size_hint: (0.005, 0.005)
         pos_hint: {'x': 0.58, 'y': 0.58}
         halign: 'center'

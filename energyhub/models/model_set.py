@@ -38,7 +38,7 @@ class ModelSet(EventDispatcher):
                            )
 
     def __iter__(self):
-        return iter((self.solar, self.car, self.heat_pump, self.diverter))
+        return iter((self.solar, self.car, self.heat_pump, self.diverter, self.mvhr))
 
     def _get_remaining_load(self):
         return self.solar.load - (self.diverter.immersion_power
