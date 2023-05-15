@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Dict
 
 import numpy as np
-from kivy.clock import mainthread
+from kivy.clock import mainthread, Clock
 from kivy.event import EventDispatcher
 from kivy.properties import BooleanProperty
 
@@ -13,11 +13,14 @@ class BaseModel(EventDispatcher, ABC):
     stale = BooleanProperty(True)
     refreshing = BooleanProperty(False)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, timeout: float = 0, **kwargs):
         super().__init__(*args, **kwargs)
         self.connection = None
         self.thread_pool = ThreadPoolExecutor(max_workers=2)
         self.futures = {}
+        self.timeout = timeout
+        if self.timeout:
+            Clock.schedule_interval(lambda x: self.refresh(), self.timeout)
 
     def _run_in_model_thread(self, function: callable, *args):
         self.futures[function.__name__, args] = self.thread_pool.submit(function, *args)

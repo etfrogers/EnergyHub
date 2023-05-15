@@ -52,7 +52,8 @@ class EnergyHubApp(App):
         super(EnergyHubApp, self).__init__(**kwargs)
         solar_model = SolarEdgeModel(config.data['solar-edge']['api-key'],
                                      config.data['solar-edge']['site-id'],
-                                     config.timezone)
+                                     config.timezone,
+                                     timeout=10)
         car_model = JLRCarModel(config.data['jlr']['username'],
                                 config.data['jlr']['password'],
                                 config.data['jlr'].get('vin', None))
