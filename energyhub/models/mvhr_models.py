@@ -8,14 +8,17 @@ from kivy.properties import NumericProperty
 
 import pyzehndercloud
 from energyhub.models.model import BaseModel
+from energyhub.utils import popup_on_error
 from pyzehndercloud.auth import InteractiveAuth
 
 
 class ZehnderModel(BaseModel):
 
+    @popup_on_error('Zehnder Initialisation')
     def connect(self):
         self._event_loop.run_until_complete(self._connect())
 
+    @popup_on_error('Zehnder Refresh', cleanup_function=BaseModel._finish_refresh)
     def refresh(self):
         self._event_loop.run_until_complete(self._refresh())
 
