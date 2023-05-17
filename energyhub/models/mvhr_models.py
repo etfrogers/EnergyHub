@@ -45,7 +45,7 @@ class ZehnderModel(BaseModel):
     async def _connect(self):
         self._session = aiohttp.ClientSession()
         auth = InteractiveAuth(self._session, username=self.username, api_key=self.api_key)
-        self.connection = pyzehndercloud.ZehnderCloud(self._session, auth)
+        self.connection = pyzehndercloud.ZehnderCloud(self._session, auth, verify_ssl=False)
         devices = await self.connection.get_devices()
         self._device = devices[0]
 
