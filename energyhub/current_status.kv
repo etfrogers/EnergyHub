@@ -188,11 +188,12 @@
         valign: 'middle'
     Arrow:
         arrow_at_midpoint: False
-        shaft_width: cm(0.07)
+        shaft_width: cm(0.04)
         o_x: self.parent.width * 0.40
         o_y: self.parent.height * 0.655
         distance: self.parent.height * 0.035
         angle: 290
+        head_size: CurrentStatus.calculate_arrow_size(3000)
     EHLabel:
         is_stale: root.models.mvhr.stale
         text: str(root.models.mvhr.supply_temperature) + ' ºC\n' + str(root.models.mvhr.supply_humidity) + ' %'
@@ -210,11 +211,12 @@
         halign: 'center'
     Arrow:
         arrow_at_midpoint: False
-        shaft_width: cm(0.07)
+        shaft_width: cm(0.04)
         o_x: self.parent.width * 0.57
         o_y: self.parent.height * 0.625
         distance: self.parent.height * 0.035
         angle: 70
+        head_size: CurrentStatus.calculate_arrow_size(3000)
 
     EHLabel:
         is_stale: root.models.mvhr.stale
