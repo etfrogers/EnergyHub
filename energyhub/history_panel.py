@@ -15,6 +15,7 @@ from kivy.garden.matplotlib import FigureCanvasKivyAgg
 from ecoforest.plotting import stacked_bar
 from energyhub.models.model_set import ModelSet
 from energyhub.utils import popup_on_error, normalise_to_timestamps
+from energyhub.config import logger
 
 
 class HistoryPanel(BoxLayout):
@@ -28,8 +29,8 @@ class HistoryPanel(BoxLayout):
         Clock.schedule_once(lambda x: Thread(self.build_graphs()).start(), 0.1)
 
     def check_pull_refresh(self, view):
-        print(view.scroll_y)
-        print(self._refreshing)
+        logger.debug(view.scroll_y)
+        logger.debug(self._refreshing)
         if view.scroll_y <= 1.1 or self._refreshing:
             return
         self.build_graphs()
