@@ -39,6 +39,22 @@
     arrow_at_midpoint: True
     shaft_width: cm(0.03)
 
+<MVHRArrow@Arrow>
+    arrow_at_midpoint: False
+    shaft_width: cm(0.04)
+    distance: self.parent.height * 0.035
+    head_size: CurrentStatus.calculate_arrow_size(3000)
+
+<MVHRLabel@EHLabel>
+    temperature: 0
+    humidity: 0
+    two_line: False
+    _separator: '\n' if self.two_line else ' '
+    is_stale: app.models.mvhr.stale
+    text: str(self.temperature) + ' ºC' + self._separator + str(self.humidity) + ' %'
+    size_hint: (0.005, 0.005)
+    halign: 'center'
+    valign: 'middle'
 
 <PowerArrow@Arrow>
     power: 0
@@ -179,52 +195,34 @@
         pos_hint: {'x': 0.75, 'y': 0.60}
         valign: 'middle'
 
-    EHLabel:
-        is_stale: root.models.mvhr.stale
-        text: str(root.models.mvhr.outdoor_temperature) + ' ºC ' + str(root.models.mvhr.outdoor_humidity) + ' %'
-        size_hint: (0.005, 0.005)
+    MVHRLabel:
+        temperature: root.models.mvhr.outdoor_temperature
+        humidity: root.models.mvhr.outdoor_humidity
         pos_hint: {'x': 0.32, 'y': 0.67}
-        halign: 'center'
-        valign: 'middle'
-    Arrow:
-        arrow_at_midpoint: False
-        shaft_width: cm(0.04)
+    MVHRArrow:
         o_x: self.parent.width * 0.40
         o_y: self.parent.height * 0.655
-        distance: self.parent.height * 0.035
         angle: 290
-        head_size: CurrentStatus.calculate_arrow_size(3000)
-    EHLabel:
-        is_stale: root.models.mvhr.stale
-        text: str(root.models.mvhr.supply_temperature) + ' ºC\n' + str(root.models.mvhr.supply_humidity) + ' %'
-        size_hint: (0.005, 0.005)
+    MVHRLabel:
+        temperature: root.models.mvhr.supply_temperature
+        humidity: root.models.mvhr.supply_humidity
+        two_line: True
         pos_hint: {'x': 0.42, 'y': 0.58}
-        valign: 'middle'
-        halign: 'center'
 
-    EHLabel:
+    MVHRLabel:
         is_stale: root.models.mvhr.stale
-        text: str(root.models.mvhr.exhaust_temperature) + ' ºC ' + str(root.models.mvhr.exhaust_humidity) + ' %'
-        size_hint: (0.005, 0.005)
+        temperature: root.models.mvhr.exhaust_temperature
+        humidity: root.models.mvhr.exhaust_humidity
         pos_hint: {'x': 0.62, 'y': 0.67}
-        valign: 'middle'
-        halign: 'center'
-    Arrow:
-        arrow_at_midpoint: False
-        shaft_width: cm(0.04)
+    MVHRArrow:
         o_x: self.parent.width * 0.57
         o_y: self.parent.height * 0.625
-        distance: self.parent.height * 0.035
         angle: 70
-        head_size: CurrentStatus.calculate_arrow_size(3000)
-
-    EHLabel:
-        is_stale: root.models.mvhr.stale
-        text: str(root.models.mvhr.extract_temperature) + ' ºC\n' + str(root.models.mvhr.extract_humidity) + ' %'
-        size_hint: (0.005, 0.005)
+    MVHRLabel:
+        temperature: root.models.mvhr.extract_temperature
+        humidity: root.models.mvhr.extract_humidity
+        two_line: True
         pos_hint: {'x': 0.58, 'y': 0.58}
-        halign: 'center'
-        valign: 'middle'
 
     Image:
         source: 'energyhub/resources/radiator.jpg'
