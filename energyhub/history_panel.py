@@ -31,7 +31,7 @@ class HistoryPanel(BoxLayout):
     def check_pull_refresh(self, view):
         logger.debug(view.scroll_y)
         logger.debug(self._refreshing)
-        if view.scroll_y <= 1.1 or self._refreshing:
+        if view.scroll_y <= 2 or self._refreshing:
             return
         self.build_graphs()
 
@@ -42,10 +42,7 @@ class HistoryPanel(BoxLayout):
     def build_graphs(self, date=None):
         self._refreshing = True
         date_picker = self.ids.history_date
-        graph_panel = self.ids.graph_panel
-        for graph_widget in graph_panel.children:
-            plt.close(graph_widget.figure)
-        graph_panel.clear_widgets()
+        self.clear_graphs()
         if date is None:
             date = date_picker.date
         self.models.solar.get_history_for_date(date)
@@ -63,6 +60,14 @@ class HistoryPanel(BoxLayout):
         self._plot_data(solar_timestamps, solar_data, zappi_timestamps, zappi_powers,
                         eddi_timestamps, eddi_powers, heat_pump_timestamps, heat_pump_data,
                         battery_timestamps, battery_data)
+
+    def clear_graphs(self):
+        graph_panel = self.ids.graph_panel
+        for graph_widget in graph_panel.children:
+            plt.close(graph_widget.figure)
+        graph_panel.clear_widgets()
+        self.number_of_graphs = 0
+        self.ids.scroll_panel.scroll_y = 0
 
     @mainthread
     @popup_on_error('History plotting', _end_refreshing)
@@ -298,7 +303,9 @@ class HistoryPanel(BoxLayout):
         history_panel.add_widget(widget)
         return plt.gca()
 
+    # noinspection PyMethodMayBeStatic
     def _graph_height(self):
+        # as this is a getter method for an alias property, it cannot be static
         if root_widget := App.get_running_app().root:
             return root_widget.width * 0.5
         else:
@@ -313,5 +320,6 @@ class HistoryPanel(BoxLayout):
 
     total_graph_height = AliasProperty(
         _get_height,
+        cache=False,
         bind=['number_of_graphs']
     )
