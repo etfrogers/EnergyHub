@@ -2,7 +2,7 @@ from threading import Thread
 
 import numpy as np
 from kivy.app import App
-from kivy.properties import ObjectProperty, AliasProperty, NumericProperty
+from kivy.properties import ObjectProperty, AliasProperty, NumericProperty, BooleanProperty
 from matplotlib import pyplot as plt
 
 
@@ -21,6 +21,7 @@ from energyhub.config import logger
 class HistoryPanel(BoxLayout):
     models: ModelSet = ObjectProperty()
     number_of_graphs = NumericProperty(0)
+    connected = BooleanProperty(True)
 
     def __init__(self, **kwargs):
         # build graphs needs to be called after initialisation to get sizes correct
@@ -40,6 +41,8 @@ class HistoryPanel(BoxLayout):
 
     @popup_on_error('History fetching', _end_refreshing)
     def build_graphs(self, date=None):
+        if not self.connected:
+            return
         self._refreshing = True
         date_picker = self.ids.history_date
         self.clear_graphs()

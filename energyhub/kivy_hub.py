@@ -1,5 +1,6 @@
 
 from kivy.app import App
+from kivy.properties import BooleanProperty
 from kivy.utils import platform
 
 from matplotlib import pyplot as plt
@@ -10,7 +11,6 @@ from energyhub.models.heat_pump_models import EcoforestModel
 from energyhub.models.model_set import ModelSet
 from energyhub.models.mvhr_models import ZehnderModel
 from energyhub.models.solar_models import SolarEdgeModel
-from energyhub.utils import popup_on_error, normalise_to_timestamps
 from energyhub.config import config
 
 # kivy.require('1.0.7')
@@ -23,13 +23,14 @@ else:
     plt.rcParams['font.size'] = 24
 
 
+# TODO House icon
+# TODO Nest integration
+# TODO Car status indication
 # TODO
-#   refresh clock
 #   refresh on resume
 #   more current status
 # TODO save state?
 # TODO caching of myenergi/solar_edge history
-# TODO handle errors on connection
 # TODO fix history bugs on 29/12, 26/12
 # TODO settings
 # TODO Fix tab strip width
@@ -39,38 +40,41 @@ else:
 #   Days car will be out, and distance
 #   Notification of low prices
 #   Plotting of prices
-# TODO House icon
-# TODO Nest integration
 # TODO Heat pump COP - inst ++
-# TODO Car status indication
 # TODO kivy logging
 
 
 class EnergyHubApp(App):
+    connected = BooleanProperty(True)
 
     def __init__(self, **kwargs):
         super(EnergyHubApp, self).__init__(**kwargs)
         solar_model = SolarEdgeModel(config.data['solar-edge']['api-key'],
                                      config.data['solar-edge']['site-id'],
                                      config.timezone,
-                                     timeout=10)
+                                     timeout=10,
+                                     should_connect=self.connected)
         car_model = JLRCarModel(config.data['jlr']['username'],
                                 config.data['jlr']['password'],
                                 config.data['jlr'].get('vin', None),
-                                timeout=60)
+                                timeout=60,
+                                should_connect=self.connected)
         heat_pump_model = EcoforestModel(config.data['ecoforest']['server'],
                                          config.data['ecoforest']['port'],
                                          config.data['ecoforest']['serial-number'],
                                          config.data['ecoforest']['auth-key'],
                                          timezone=config.timezone,
-                                         timeout=60)
+                                         timeout=60,
+                                         should_connect=self.connected)
         diverter_model = MyEnergiModel(config.data['myenergi']['username'],
                                        config.data['myenergi']['api-key'],
                                        config.timezone,
-                                       timeout=10)
+                                       timeout=10,
+                                       should_connect=self.connected)
         mvhr_model = ZehnderModel('',
                                   config.data['zehnder']['api-key'],
-                                  timeout=10)
+                                  timeout=10,
+                                  should_connect=self.connected)
 
         self.models = ModelSet(solar=solar_model,
                                car=car_model,
@@ -80,11 +84,12 @@ class EnergyHubApp(App):
 
     def build(self):
         super(EnergyHubApp, self).build()
-        for model in self.models:
-            model.connect()
-        for model in self.models:
-            model.get_result('connect')
-        self.status_panel.refresh()
+        if self.connected:
+            for model in self.models:
+                model.connect()
+            for model in self.models:
+                model.get_result('connect')
+            self.status_panel.refresh()
 
     @property
     def status_panel(self):
@@ -96,8 +101,3 @@ class EnergyHubApp(App):
 
     def on_pause(self):
         return True
-
-
-if __name__ == '__main__':
-    app = EnergyHubApp()
-    app.run()

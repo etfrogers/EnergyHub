@@ -13,14 +13,19 @@ class BaseModel(EventDispatcher, ABC):
     stale = BooleanProperty(True)
     refreshing = BooleanProperty(False)
 
-    def __init__(self, *args, timeout: float = 0, **kwargs):
+    def __init__(self, *args, timeout: float = 0, should_connect=True, **kwargs):
         super().__init__(*args, **kwargs)
         self.connection = None
+        self._should_connect = should_connect
         self.thread_pool = ThreadPoolExecutor(max_workers=2)
         self.futures = {}
         self.timeout = timeout
-        if self.timeout:
+        if self.timeout and self.should_connect:
             Clock.schedule_interval(lambda x: self.refresh(), self.timeout)
+
+    @property
+    def should_connect(self):
+        return self._should_connect
 
     def _run_in_model_thread(self, function: callable, *args):
         self.futures[function.__name__, args] = self.thread_pool.submit(function, *args)
