@@ -208,6 +208,7 @@ class HistoryPanel(BoxLayout):
                                    ),
                                   total_value=total_consumption,
                                   colors=colors, hatching=hatching)
+        destination_ax.set_ylim([0, (1.1/1000) * max(total_consumption, solar_data['production_energy'])])
         widget = FigureCanvasKivyAgg(fig)
         widget.size_hint_y = None
         widget.height = self.graph_height
