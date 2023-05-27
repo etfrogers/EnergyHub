@@ -42,6 +42,7 @@
 <MVHRArrow@Arrow>
     arrow_at_midpoint: False
     shaft_width: cm(0.04)
+    outline_color: (1, 1, 1, 1)
     distance: self.parent.height * 0.035
     head_size: CurrentStatus.calculate_arrow_size(3000)
 
@@ -195,6 +196,12 @@
         pos_hint: {'x': 0.75, 'y': 0.60}
         valign: 'middle'
 
+    Image:
+        source: 'energyhub/resources/house.png'
+        size_hint: (1., 0.37)
+        allow_stretch: True
+        keep_ratio: False
+        pos_hint: {'x': 0.5 - ((self.width/self.parent.width) / 2), 'y': 0.43}
     MVHRLabel:
         temperature: root.models.mvhr.outdoor_temperature
         humidity: root.models.mvhr.outdoor_humidity
@@ -208,7 +215,6 @@
         humidity: root.models.mvhr.supply_humidity
         two_line: True
         pos_hint: {'x': 0.42, 'y': 0.58}
-
     MVHRLabel:
         is_stale: root.models.mvhr.stale
         temperature: root.models.mvhr.exhaust_temperature
