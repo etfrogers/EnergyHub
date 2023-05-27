@@ -7,9 +7,13 @@ import numpy as np
 from kivy.properties import NumericProperty
 
 import pyzehndercloud
+from energyhub.config import logger
 from energyhub.models.model import BaseModel
 from energyhub.utils import popup_on_error
 from pyzehndercloud.auth import InteractiveAuth
+
+
+pyzehndercloud.zehndercloud._LOGGER = logger
 
 
 class ZehnderModel(BaseModel):
@@ -18,7 +22,6 @@ class ZehnderModel(BaseModel):
     def connect(self):
         self._event_loop.run_until_complete(self._connect())
 
-    @popup_on_error('Zehnder Refresh', cleanup_function=BaseModel._finish_refresh)
     def refresh(self):
         self._event_loop.run_until_complete(self._refresh())
 
@@ -47,13 +50,18 @@ class ZehnderModel(BaseModel):
         auth = InteractiveAuth(self._session, username=self.username, api_key=self.api_key)
         self.connection = pyzehndercloud.ZehnderCloud(self._session, auth, verify_ssl=False)
         devices = await self.connection.get_devices()
-        self._device = devices[0]
+        if devices:
+            self._device = devices[0]
 
+    @popup_on_error('Zehnder Refresh', cleanup_function=BaseModel._finish_refresh)
     async def _refresh(self):
-        status = await self.connection.get_device_state(self._device)
-        self.update_properties(status)
+        if self._device:
+            status = await self.connection.get_device_state(self._device)
+            self.update_properties(status)
 
+    @popup_on_error('Zehnder Refresh', cleanup_function=BaseModel._finish_refresh)
     def _update_properties(self, data):
+        logger.debug('Zehnder status data: ', data.data)
         self.supply_temperature = data['systemSupplyTemp']
         self.exhaust_temperature = data['exhaustAirTemp']
         self.outdoor_temperature = data['systemOutdoorTemp']
