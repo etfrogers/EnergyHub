@@ -50,6 +50,8 @@ def _warning(title: str, msg: str):
 
 
 def timestamps_to_hours(times: Sequence[datetime.datetime]):
+    if len(times) == 0:
+        return np.array([])
     ref_time = times[0]
     date = ref_time.date()
     midnight = datetime.datetime.combine(date, datetime.time(0, tzinfo=ref_time.tzinfo))
